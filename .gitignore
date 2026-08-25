@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.codex/workflow/
+MORNING_REPORT.md
+
+# Independent local repositories and controlled acceptance evidence.
+.m9-acceptance/
+research/references/

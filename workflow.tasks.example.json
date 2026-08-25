@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "tasks": [
+    {
+      "id": "example-001",
+      "title": "Describe the smallest independently verifiable change",
+      "objective": "Replace this example with a concrete product task.",
+      "acceptanceCriteria": [
+        "The requested behavior is implemented.",
+        "Relevant verification evidence is recorded."
+      ],
+      "verification": [
+        "npm test"
+      ],
+      "dependsOn": []
+    }
+  ]
+}

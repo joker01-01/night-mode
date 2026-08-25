@@ -1,0 +1,21 @@
+{
+  "name": "codex-development-workflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A file-backed Interactive and Night Shift workflow runner for Codex.",
+  "main": "dist/index.js",
+  "bin": {
+    "codex-workflow": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node test/run.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
