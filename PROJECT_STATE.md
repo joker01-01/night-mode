@@ -2,7 +2,7 @@ PROJECT_STATE.md
 
 Current Stage
 
-Final V1 requirements and delivery roadmap are complete. Milestones 0 through 8 passed; Milestone 9 is in progress. Real Interactive accept/reject and the bounded Night dependency matrix passed; the remaining section 17 acceptance scenarios are still outstanding.
+Final V1 requirements and delivery roadmap are complete. Milestones 0 through 8 passed; Milestone 9 is in progress. Real Interactive accept/reject, the bounded Night dependency matrix, and pause/stop/resume passed; the remaining section 17 acceptance scenarios are still outstanding.
 
 当前 `0.1.0` 实现已通过本地测试，并修复 Windows PowerShell UTF-8 BOM、全局 npm Codex 启动和 Codex 严格 structured-output schema 的兼容问题。M0 的真实 PowerShell Interactive 基线已通过：worker 成功、声明的 verification 通过、只读 reviewer 返回 `SHIP`，并生成证明文件和 handoff。
 
@@ -42,6 +42,8 @@ M9 进行中：Session 0 runner 根因已确认是非交互 Window Station/Deskt
 根项目已初始化为 `main` 分支 Git 仓库，初始干净基线为 `382a857`（`chore: establish project baseline`）。父仓库只跟踪产品源码、测试和项目文档；`.m9-acceptance/` 与 `research/references/` 因包含独立嵌套 Git 仓库而保留内部历史并由父仓库忽略。真实 task-source mutation 单元已在 `.m9-acceptance/task-mutation-20260826-m1` 通过：干净 Git 基线 `c55e039` 上启动真实 Codex worker，harness 在 `workspace-write` phase 开始后把任务源 SHA-256 从 `00D4531B...DAFC5` 改为 `B85E158C...3F7A`；worker 仅只读确认 proof 并返回 schema-valid `COMPLETE`，proof SHA-256 保持 `F6FAA555...3F83`。控制器在 worker exit 0 后、validation/reviewer 启动前检测到不可变任务源变化，记录 `controller/task_source_mutated` 并诚实结束为 `blocked/task_source_mutated`；任务源 Git diff 仅改变 title 一行，workflow lock 已释放，handoff 与 failure memory 完整，无残留 fixture 进程或危险参数，Session 0 Window Station/Desktop ACL 恢复校验均为 True。
 
 真实 stale-lock 单元已在 `.m9-acceptance/stale-lock-20260826-l1` 通过：干净 Git 基线 `a421182` 上，活动 PID 锁与不存在 PID 的死锁在未授权时均 exit 1 且 metadata SHA-256 前后相同；默认死锁错误明确要求 `--reclaim-stale-lock`。显式回收后真实 Codex worker 在 `workspace-write` 创建精确 `STALE_LOCK_RECOVERED\n` proof，声明 verification exit 0，真实 `read-only` reviewer 返回 `SHIP` 且 project-state review `APPROVE`，任务停在 `provisionally_complete/awaiting_human_acceptance`；任务源 hash 未变化，controller-owned `.lock` 已释放，无 checkpoint、危险参数或残留进程，Session 0 Window Station/Desktop ACL 恢复校验均为 True。fixture 开发期间的仓库所有者差异使用仅对子进程生效的 `safe.directory` 解决，错误锁路径尝试完整归档于 `.codex/acceptance-attempts/wrong-lock-path`，未修改全局 Git 配置或产品代码。
+
+真实 pause/stop/resume 单元已在 `.m9-acceptance/final-matrix-20260829-f1/pause-stop-resume-f3` 通过：Night 控制器在 `PAUSE` 存在时持续检查边界，写入 `STOP` 后以 `stopped/stop_file_detected` 结束，任务 attempts 保持 0、未启动 Codex phase，并写入 state 与 handoff。移除两个控制文件后显式 `resume`，真实 worker 在 `workspace-write` 创建精确 19 字节 `PAUSE_STOP_RESUMED\n` proof，声明 verification exit 0，真实 `read-only` reviewer 返回 `SHIP`，project-state review 为 `CORRECT`，最终停在 `provisionally_complete/awaiting_human_acceptance`。任务源 hash 未变化，controller-owned `.lock` 已释放，worker/reviewer 参数不含危险或 Git bypass 选项；本次仅对子进程使用官方 `unelevated` Windows sandbox fallback 与 `windows.sandbox_private_desktop=false` 兼容开关，Session 0 Window Station/Desktop ACL 结束后恢复校验均为 True。失败尝试 f1/f2 已保留，分别记录 elevated sandbox 的 `0xC0000142` 子进程初始化失败，以及早期验收 driver 的 Windows 命令引用/600 秒预算错误。
 
 ---
 
@@ -182,8 +184,8 @@ Approved V1 Architecture
 
 Current Next Step
 
-1. 执行第 17 节下一个独立验收单元：pause/stop safe-boundary；已通过的 Night dependency matrix、hard-timeout、reviewer `REVISE`、task-source mutation 与 stale lock 不重复执行。
-2. 保留 `.m9-acceptance/night-dependency-20260824-n4`、`.m9-acceptance/timeout-20260825-t1`、`.m9-acceptance/reviewer-revise-20260826-r1`、`.m9-acceptance/task-mutation-20260826-m1` 与 `.m9-acceptance/stale-lock-20260826-l1` 的状态、phase 日志和 handoff，不代替人类执行 accept/reject。
+1. M9 尚未完成。下一批未完成的真实验收为：verification failure、confirmed blocker、phase failure、resource limits，以及 dirty Interactive、默认拒绝 dirty Night、显式 `--allow-dirty` Night。自动化测试已覆盖这些分支，但不能替代第 17 节真实验收。
+2. 保留 `.m9-acceptance/night-dependency-20260824-n4`、`.m9-acceptance/timeout-20260825-t1`、`.m9-acceptance/reviewer-revise-20260826-r1`、`.m9-acceptance/task-mutation-20260826-m1`、`.m9-acceptance/stale-lock-20260826-l1` 与 `.m9-acceptance/final-matrix-20260829-f1/pause-stop-resume-f3` 的状态、phase 日志和 handoff，不代替人类执行 accept/reject。
 3. 后续真实 Codex 场景继续使用 Session 1，或使用同一可恢复 Session 0 ACL 窗口与官方私有 Desktop 兼容开关；每次核验并恢复 GUI 对象 DACL，不修改永久代理、模型缓存或系统安全配置。
 
 ---
