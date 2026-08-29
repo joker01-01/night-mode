@@ -82,8 +82,9 @@ export function resolveCodexInvocation(input: {
   }
 
   const pathValue = input.pathValue ?? process.env.PATH ?? "";
+  const joinPath = platform === "win32" ? path.win32.join : path.join;
   for (const directory of pathValue.split(";").map((entry: string) => entry.trim().replace(/^"|"$/g, "")).filter(Boolean)) {
-    const cliScript = path.join(directory, "node_modules", "@openai", "codex", "bin", "codex.js");
+    const cliScript = joinPath(directory, "node_modules", "@openai", "codex", "bin", "codex.js");
     if (exists(cliScript)) {
       return { command: input.nodeExecutable ?? process.execPath, args: [cliScript, ...input.args] };
     }

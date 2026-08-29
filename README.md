@@ -2,6 +2,17 @@
 
 A file-backed, cross-platform workflow runner for Codex. It keeps requirements in an immutable task document and execution artifacts in `.codex/workflow/`.
 
+## Install as a Codex Skill
+
+The repository root contains the standard `SKILL.md` entry point. Install the skill with the Codex skill installer:
+
+```text
+python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
+  --repo joker01-01/Night-Mode --path . --name night-mode
+```
+
+The installer places it at `~/.codex/skills/night-mode`.
+
 ## Commands
 
 ```powershell
