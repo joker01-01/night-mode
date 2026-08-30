@@ -23,6 +23,11 @@ export function workflowPaths(cwd: string, stateDir?: string): WorkflowPaths {
     workSchemaFile: path.join(resolvedStateDir, "work-schema.json"),
     reviewSchemaFile: path.join(resolvedStateDir, "review-schema.json"),
     handoffFile: path.join(resolvedStateDir, "HANDOFF.md"),
+    readinessFile: path.join(resolvedStateDir, "readiness.json"),
+    readinessReportFile: path.join(resolvedStateDir, "READINESS.md"),
+    readinessDir: path.join(resolvedStateDir, "readiness"),
+    projectMemoryFile: path.join(resolvedStateDir, "project-memory.json"),
+    projectMemoryReportFile: path.join(resolvedStateDir, "PROJECT_MEMORY.md"),
     validationDir: path.join(resolvedStateDir, "validation"),
     phaseDir: path.join(resolvedStateDir, "phases"),
     projectStateFile: path.join(path.resolve(cwd), "PROJECT_STATE.md")
@@ -75,7 +80,7 @@ export function sha256Text(content: string): string {
 }
 
 export function sha256File(file: string): string {
-  return sha256Text(readText(file));
+  return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 }
 
 export function relativeToCwd(cwd: string, target: string): string {

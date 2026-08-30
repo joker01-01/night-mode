@@ -2,15 +2,20 @@
   "name": "codex-development-workflow",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "A file-backed Interactive and Night Shift workflow runner for Codex.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joker01-01/Night-Mode.git"
+  },
   "main": "dist/index.js",
   "bin": {
-    "codex-workflow": "dist/index.js"
+    "codex-workflow": "scripts/night-mode"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node test/run.js"
+    "test": "tsc -p tsconfig.json && node test/run.js"
   },
   "engines": {
     "node": ">=22"

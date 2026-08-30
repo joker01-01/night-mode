@@ -29,6 +29,8 @@ test("worker output schema declares blockerReason as required for strict structu
 
   assert.ok(schema.required.includes("blockerReason"));
   assert.ok(schema.required.includes("projectStateProposal"));
+  assert.ok(schema.properties.projectStateProposal.required.includes("memoryCandidates"));
+  assert.equal(schema.properties.projectStateProposal.properties.memoryCandidates.items.additionalProperties, false);
 });
 
 test("worker and reviewer contracts can carry structured project-state proposals", () => {

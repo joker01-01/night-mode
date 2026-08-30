@@ -1,8 +1,8 @@
 # Codex Development Workflow — V1 Final Requirements
 
-Status: Finalized for implementation; delivery remains milestone-gated.
+Status: Finalized and accepted for V1; public release remains separately gated by `RELEASE_CHECKLIST.md`.
 
-Date: 2026-08-21
+Date: 2026-08-21; amended 2026-08-29 with backward-compatible readiness, artifact-backed QA, and evidence-backed project memory; acceptance completed 2026-08-30
 
 Evidence base: `RESEARCH.md`, the current V1 source, controlled Windows acceptance attempts, and the completed Grill Me decisions.
 
@@ -36,7 +36,7 @@ V1 does not include:
 The following sources have separate responsibilities:
 
 - `workflow.tasks.json`: immutable human-authored requirements and dependency graph.
-- `.codex/workflow/`: machine-owned execution state, phase output, validation evidence, failure memory, locks, and reports.
+- `.codex/workflow/`: machine-owned execution state, phase output, validation evidence, failure memory, citation-backed project memory, locks, and reports.
 - `PROJECT_STATE.md`: durable, human-readable project continuity, updated only from reviewer-approved structured state.
 - `AGENTS.md`: durable project rules; the workflow must not rewrite it automatically.
 
@@ -55,6 +55,8 @@ Every task must contain:
 - at least one non-empty controller-run `verification` command;
 - an explicit `dependsOn: string[]`, which may be empty.
 
+The document may additionally contain a root `readiness` block with required command names, required environment-variable names, a network assumption, and an advisory install command plus non-mutating bootstrap health check. A task may add `qualityGates` of kind `integration` or `user_path`; every gate declares a controller-run command and one or more repository-relative evidence files. These additions remain part of the immutable human-authored task source.
+
 Before any agent runs, the controller must reject:
 
 - duplicate IDs;
@@ -63,7 +65,8 @@ Before any agent runs, the controller must reject:
 - dependency cycles;
 - empty acceptance criteria;
 - missing or empty verification commands;
-- unsupported schema versions.
+- unsupported schema versions;
+- invalid readiness declarations, duplicate quality-gate IDs, unsupported gate kinds, and evidence paths that are absolute, escape the repository, or target controller-owned artifacts.
 
 The full task document is hashed. Any change during a run is a global hard blocker. A deliberate requirement change starts a new run; it is never silently merged into an existing run.
 
@@ -98,12 +101,13 @@ Interactive Mode never selects another product task automatically.
 
 Night Shift requires explicit `--mode night` and bounded resource limits.
 
-1. Select the next dependency-ready task.
-2. Run worker, verification, reviewer, and optional checkpoint.
-3. Record provisional completion, failure, or blocker.
-4. Continue independent ready tasks while limits permit.
-5. Stop on queue exhaustion, global blocker, explicit stop, or resource limit.
-6. Always write `MORNING_REPORT.md` before exit.
+1. Assess repository readiness and enforce the selected minimum level before starting Codex.
+2. Select the next dependency-ready task.
+3. Run worker, verification, artifact-backed quality gates, reviewer, and optional checkpoint.
+4. Record provisional completion, failure, or blocker.
+5. Continue independent ready tasks while limits permit.
+6. Stop on queue exhaustion, global blocker, explicit stop, or resource limit.
+7. Always write `MORNING_REPORT.md` before exit.
 
 ## 7. Completion Gate
 
@@ -111,9 +115,10 @@ Automation completion requires all of the following:
 
 1. The worker returns a schema-valid `COMPLETE` result.
 2. Every declared verification command exits successfully.
-3. The independent reviewer returns a schema-valid `SHIP` decision.
-4. The task document hash is unchanged.
-5. The reviewer approves the structured project-state update.
+3. Every declared quality-gate command exits successfully and creates or refreshes every declared regular-file evidence artifact; evidence size and SHA-256 are recorded.
+4. The independent reviewer returns a schema-valid `SHIP` decision.
+5. The task document hash is unchanged.
+6. The reviewer approves the structured project-state update.
 
 Worker self-reporting alone never completes a task. Missing verification is a task-definition error, not a pass.
 
@@ -151,6 +156,15 @@ The controller owns only a marked managed section:
 ```
 
 Content outside that section is human-owned and must be preserved byte-for-byte. If the file is absent, the controller may create it with a managed section. Provisional, accepted, rejected, blocked, and limit-reached states must be represented honestly.
+
+Project memory is separate from retry-oriented failure memory:
+
+- The worker may propose durable decisions, learnings, and constraints with tags and exact repository-relative line citations; an empty candidate list is valid.
+- The independent reviewer must inspect, approve, correct, or remove candidates before `SHIP`. Only the reviewer-approved proposal is eligible for persistence.
+- Candidate statement length, tags, citation count, source-file size, line count, and captured bytes are bounded. The controller independently captures cited text and SHA-256, rejects schema-valid candidates whose evidence is secret-like, symbolic-link, controller-owned, out-of-repository, empty, or oversized, and records that capture rejection without converting an otherwise valid completion into failure. Structurally malformed reviewer output remains a review-contract failure.
+- Before use, citations are revalidated against the current working tree. Unchanged evidence remains active; uniquely moved text is relocated; changed, ambiguous, missing, expired, or archived evidence is retained for audit but excluded from prompts.
+- Only active, task-relevant entries are supplied to a worker, with a bounded maximum. Constraints may remain globally relevant. The reviewer does not receive prior project memory as authority.
+- Relevant use refreshes the default 28-day retention window. Expiration never auto-deletes the record, and humans can add, validate, list, or archive memories under the workflow lock.
 
 ## 10. Failure and Retry Model
 
@@ -219,8 +233,10 @@ Required commands:
 - `status`: show run, task, dependency, validation, and human-acceptance state.
 - `accept --task <id>`: record human acceptance.
 - `reject --task <id> --reason <text>`: reopen a task and invalidate dependants.
+- `readiness --tasks <file>`: write machine-readable and human-readable readiness reports without starting Codex.
+- `memory list|validate|add|archive`: inspect and manage citation-backed project memory without deleting audit history.
 
-Required Night controls include total runtime, maximum tasks, attempts, idle timeout, hard timeout, checkpoint opt-in, and dirty-worktree override.
+Required Night controls include total runtime, maximum tasks, attempts, idle timeout, hard timeout, checkpoint opt-in, dirty-worktree override, and a readiness level from 0 through 4. Night defaults to level 2 for backward compatibility; users may require level 3 or 4. A declared target install command is advisory only and is never executed automatically. Bootstrap health checks must not change the repository, and direct environment checks record names/presence only, never values.
 
 Errors must identify the failing phase, primary cause, and artifact path. A generic `needs_review` message is insufficient for a phase-launch failure.
 
@@ -234,9 +250,12 @@ Machine-owned state remains repository-local under the configured state director
 - phase JSONL logs;
 - validation logs;
 - failure memory;
+- `project-memory.json` and `PROJECT_MEMORY.md`, including citation hashes, validation/use timestamps, status, origin, and retention;
 - event history;
 - lock metadata;
 - baseline and changed-path evidence;
+- `readiness.json` and `READINESS.md`;
+- quality-gate logs and fresh evidence metadata, including path, size, and SHA-256;
 - `HANDOFF.md`.
 
 Night Shift also writes `MORNING_REPORT.md` in the target root.
@@ -266,7 +285,7 @@ Handoff reports must show:
 
 V1 is complete only after all of the following pass:
 
-1. Typecheck, build, and the full automated test suite.
+1. Typecheck, build, and the full automated test suite, including readiness levels, target bootstrap mutation detection, prerequisite privacy, Night readiness refusal, fresh/stale quality-gate evidence, and project-memory capture, relocation, invalidation, retention, relevance, archive, CLI, and worker injection.
 2. A controlled real Interactive run in a temporary Git repository reaches provisional completion through worker, verification, and reviewer.
 3. Human `accept` produces final completion; human `reject` reopens the task and invalidates dependants.
 4. A controlled Night run executes multiple independent tasks, respects dependencies, and produces a truthful Morning Report.

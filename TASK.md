@@ -2,7 +2,7 @@ TASK.md
 
 Current Task
 
-Milestone 9 — End-to-End Acceptance Matrix is in progress.
+Milestone 10 — V1 release closeout is complete locally under MIT. Remote publication awaits explicit push authorization.
 
 权威规划文件：
 
@@ -14,14 +14,16 @@ Milestone 9 — End-to-End Acceptance Matrix is in progress.
 
 Critical Instruction
 
-M0–M8 的代码和自动化验证已经完成；不要把受控测试通过误报为 M9 完成。M9 必须记录真实 Codex worker、verification、reviewer、human accept/reject、Night dependency matrix 和第 17 节全部验收证据。
+M0–M9 已完成。V1 完成结论必须继续由真实 Codex worker、verification、reviewer、human accept/reject、Night dependency matrix 和第 17 节全部验收证据支撑，不得只引用自动化测试。
 
-每完成一个独立验收单元，都必须验证、更新项目状态、报告并停止等待下一步。
+后续产品增强不得改写或弱化已通过的 V1 验收标准；如改变这些边界，必须新增相应回归和真实验收。
 
 ---
 
 Stop Point
 
-M8 已通过，当前自动化基线为 `npm run typecheck`、`npm run build` 和 `npm test`，其中测试为 48/48 通过。M9 已确认原 runner 阻塞来自 Session 0 的非交互 Window Station/Desktop 未授予 `CodexSandboxOffline` 启动权限：runner 先以 `0xC0000142` 失败，15 秒 pipe timeout 只是下游症状。临时增加最小 GUI 对象 ACE 后，同一沙箱命令成功，随后原始安全描述符按 SHA-256 精确恢复。
+M0–M8、第一优先级 Skill packaging、第二优先级 readiness/user-path QA 和证据化项目记忆均已完成。最新自动化基线仍要求 `npm run typecheck`、`npm run build`、`npm test` 全部通过，测试总数为 70。M9 的 Session 0 根因、最小临时 GUI ACL 窗口和逐字节恢复机制已验证；没有修改持久系统配置。
 
-根项目已建立 `main` 分支 Git 仓库，初始基线为 `382a857`；独立嵌套研究仓库与 M9 fixture 由父仓库忽略并保留内部历史。真实 Interactive accept、reject、Night dependency matrix、hard-timeout、reviewer `REVISE`、task-source mutation、stale lock 与 pause/stop/resume 单元均已完成。Pause/stop/resume fixture `.m9-acceptance/final-matrix-20260829-f1/pause-stop-resume-f3` 在 `PAUSE` 状态下收到 `STOP` 后以 `stopped/stop_file_detected` 安全结束，attempts 为 0 且未启动 Codex；显式 `resume` 后真实 worker、verification 和只读 reviewer 完整通过，proof 为精确 19 字节，任务停在 `provisionally_complete/awaiting_human_acceptance`，任务源未变化、锁已释放、无危险参数，临时 Session 0 ACL 恢复校验均为 True。`npm run typecheck`、`npm run build` 与 `npm test` 最新回归通过，测试为 48/48。M9 仍缺少 verification failure、confirmed blocker、phase failure、resource limits 和三种 dirty-worktree 行为的真实验收；自动化测试虽已覆盖这些分支，但在真实证据完成前不得宣称 M9 或 V1 完成。
+根项目已建立 `main` 分支 Git 仓库，初始基线为 `382a857`；独立嵌套研究仓库与 M9 fixture 由父仓库忽略并保留内部历史。真实 Interactive accept/reject、Night dependency matrix、hard-timeout、reviewer `REVISE`、task-source mutation、stale lock、pause/stop/resume、verification failure、confirmed blocker、reviewer phase failure、total-runtime/max-tasks limits，以及 dirty Interactive、dirty Night 默认拒绝和 `--allow-dirty` Night 均已完成。最后 8 个场景的成功证据位于 `.m9-acceptance/final-matrix-20260829-f2/windows-v2`、`windows-v3`、`windows-v4`，可由 `verify-matrix.js` 重放断言；矩阵为 8/8，通过时任务源均未变化、锁已释放、调用无危险/Git bypass 参数、临时 Window Station/Desktop ACL 均恢复到基线，远端残留 fixture 进程为 0。M9 与 V1 第 17 节验收完成。
+
+V1 `0.1.0` 发布收口已完成：新增 `CHANGELOG.md`、`RELEASE_CHECKLIST.md` 和 MIT `LICENSE`，README/ROADMAP/requirements/status 已对齐；两个 Skill 均通过官方 validator；wrapper help、pack dry-run、M9 8/8 证据重放、typecheck、build 和 70/70 tests 均通过。分发通道明确为 GitHub Codex Skill，npm package 保持 private。仓库所有者已授权并完成本地 release commit 与 annotated `v0.1.0` tag；尚未 push，因此远端仍未公开该版本。

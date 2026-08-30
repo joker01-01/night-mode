@@ -254,14 +254,19 @@ Project Memory
 V1 Runtime Conventions
 
 - V1 is a Node.js/TypeScript CLI. Runtime code is in `src/`, compiled output is `dist/`, and focused tests are in `test/`.
+- End-user commands go through `scripts/night-mode`, which resolves the installed Skill, bootstraps locked dependencies when missing, rebuilds stale output, and launches `dist/index.js`. Keep handoff commands executable from outside this repository.
+- The root `SKILL.md` is the distributable end-user runner Skill. Repository maintenance instructions belong only in `.agents/skills/night-mode-maintainer/SKILL.md`; do not merge those two jobs back together.
 - Use `npm run typecheck`, `npm run build`, and `npm test` for V1 verification.
 - The immutable task source is a `workflow.tasks.json` document shaped like `workflow.tasks.example.json`. Execution metadata belongs only under `.codex/workflow/`.
 - Interactive runs require one explicit `--task`; Night Shift requires explicit `--mode night`.
+- `readiness --tasks <file>` writes `readiness.json` and `READINESS.md`. Night defaults to minimum level 2; higher user-selected levels must not be silently lowered. Target install commands are advisory only, bootstrap health checks must be non-mutating, and environment values must not be recorded.
+- Optional `qualityGates` are controller-run integration or user-path checks. Completion requires fresh regular-file evidence produced or refreshed by the current command, with size and SHA-256 retained; stale, symlinked, escaping, controller-owned, or oversized evidence must fail.
 - Worker Codex phases use `workspace-write`; reviewer phases use `read-only`. Do not add dangerous approval or sandbox bypass flags.
 - V1 does not pass Codex `--skip-git-repo-check`; every workflow target must be a Git working tree, including controlled smoke-test directories.
 - Final V1 tasks use an immutable dependency DAG, require explicit acceptance criteria and verification commands, and may run only when all dependencies are automation-complete.
 - Reviewer `SHIP` creates provisional completion only. Human `accept` is required for final completion; `reject` reopens the task and invalidates dependency descendants without rollback.
 - Reviewer-approved structured state may update only the machine-managed section of `PROJECT_STATE.md`; preserve all human-owned content outside it.
+- Durable project memory is separate from failure memory. Only reviewer-approved, controller-captured repository facts with bounded non-secret line citations may become active; revalidate before worker use and never inject stale, missing, expired, or archived entries.
 - Night Shift must have total-runtime, task-count, and attempt limits. It rejects dirty worktrees by default; an explicit dirty override disables checkpoints and must preserve the starting baseline.
 - Git checkpoints remain opt-in and may run only after an accepted review and non-failing declared validation. Never introduce reset, clean, rebase, fetch, or Git-lock deletion.
 - The root repository ignores `.m9-acceptance/` and `research/references/` because they contain independent nested Git repositories; preserve their inner history rather than absorbing them as parent-repository gitlinks.

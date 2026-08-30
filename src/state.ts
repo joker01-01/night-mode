@@ -72,6 +72,27 @@ function validateFailureAttempt(value: unknown): FailureAttempt {
   return failure as unknown as FailureAttempt;
 }
 
+function validateReadinessAssessment(value: unknown): void {
+  if (typeof value !== "object" || value === null) throw new Error("Workflow readiness must be an object.");
+  const readiness = value as Record<string, unknown>;
+  if (readiness.schemaVersion !== 1) throw new Error("Workflow readiness requires schemaVersion 1.");
+  for (const field of ["generatedAt", "taskSourceFile", "summary"]) {
+    if (!nonEmptyString(readiness[field])) throw new Error(`Workflow readiness requires ${field}.`);
+  }
+  for (const field of ["level", "minimumLevel"]) {
+    if (!Number.isSafeInteger(readiness[field]) || Number(readiness[field]) < 0 || Number(readiness[field]) > 4) throw new Error(`Workflow readiness ${field} must be an integer from 0 through 4.`);
+  }
+  if (typeof readiness.ready !== "boolean") throw new Error("Workflow readiness requires a boolean ready field.");
+  if (!Array.isArray(readiness.checks)) throw new Error("Workflow readiness checks must be an array.");
+  for (const raw of readiness.checks) {
+    if (typeof raw !== "object" || raw === null) throw new Error("Workflow readiness check must be an object.");
+    const check = raw as Record<string, unknown>;
+    if (!nonEmptyString(check.code) || !nonEmptyString(check.detail) || !["pass", "warning", "blocker"].includes(String(check.status))) {
+      throw new Error("Workflow readiness check requires code, status, and detail.");
+    }
+  }
+}
+
 export function assertAutomationStatusTransition(from: TaskAutomationStatus, to: TaskAutomationStatus): void {
   assertKnownStatus(from, Object.keys(automationTransitions) as TaskAutomationStatus[], "automation status");
   assertKnownStatus(to, Object.keys(automationTransitions) as TaskAutomationStatus[], "automation status");
@@ -124,6 +145,22 @@ export function assertProjectStateProposal(value: unknown): asserts value is Pro
   if (!nonEmptyString(proposal.outcomeSummary)) throw new Error("Project-state proposal requires a non-empty outcomeSummary.");
   for (const field of ["importantDecisions", "knownProblems", "verificationEvidence", "nextActions", "humanAcceptanceActions"]) {
     if (!stringArray(proposal[field])) throw new Error(`Project-state proposal ${field} must be an array of strings.`);
+  }
+  if (proposal.memoryCandidates === undefined) proposal.memoryCandidates = [];
+  if (!Array.isArray(proposal.memoryCandidates)) throw new Error("Project-state proposal memoryCandidates must be an array.");
+  for (const raw of proposal.memoryCandidates) {
+    if (typeof raw !== "object" || raw === null) throw new Error("Project-state memory candidate must be an object.");
+    const candidate = raw as Record<string, unknown>;
+    if (!["decision", "learning", "constraint"].includes(String(candidate.kind)) || !nonEmptyString(candidate.statement) || candidate.statement.length > 1_000) throw new Error("Project-state memory candidate requires a supported kind and a statement of at most 1000 characters.");
+    if (!Array.isArray(candidate.tags) || candidate.tags.length === 0 || candidate.tags.length > 12 || !candidate.tags.every((tag) => nonEmptyString(tag) && tag.length <= 64)) throw new Error("Project-state memory candidate requires 1-12 bounded tags.");
+    if (!Array.isArray(candidate.citations) || candidate.citations.length === 0 || candidate.citations.length > 5) throw new Error("Project-state memory candidate requires 1-5 citations.");
+    for (const rawCitation of candidate.citations) {
+      if (typeof rawCitation !== "object" || rawCitation === null) throw new Error("Project-state memory citation must be an object.");
+      const citation = rawCitation as Record<string, unknown>;
+      if (!nonEmptyString(citation.path) || !Number.isSafeInteger(citation.startLine) || !Number.isSafeInteger(citation.endLine) || Number(citation.startLine) < 1 || Number(citation.endLine) < Number(citation.startLine)) {
+        throw new Error("Project-state memory citation requires path and a valid positive line range.");
+      }
+    }
   }
 }
 
@@ -193,6 +230,7 @@ export function validateWorkflowState(value: unknown): WorkflowState {
   if (state.projectStateReviewDecision !== undefined && !["APPROVE", "CORRECT"].includes(String(state.projectStateReviewDecision))) {
     throw new Error("Workflow state projectStateReviewDecision must be APPROVE or CORRECT.");
   }
+  if (state.readiness !== undefined) validateReadinessAssessment(state.readiness);
   if (typeof state.tasks !== "object" || state.tasks === null || Array.isArray(state.tasks)) throw new Error("Workflow state requires a task map.");
   for (const execution of Object.values(state.tasks as Record<string, unknown>)) validateTaskExecution(execution);
   return state as unknown as WorkflowState;

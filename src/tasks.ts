@@ -1,4 +1,4 @@
-import { TaskDefinition, TaskDocument } from "./types";
+import { QualityGateDefinition, ReadinessRequirements, TaskDefinition, TaskDocument } from "./types";
 import { readJson, sha256File } from "./storage";
 
 const path = require("node:path");
@@ -13,6 +13,64 @@ function stringList(value: unknown): value is string[] {
 
 function dependencyList(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(nonEmptyString);
+}
+
+function stringListOrEmpty(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(nonEmptyString);
+}
+
+function safeRelativeEvidencePath(value: string): boolean {
+  const normalized = value.replaceAll("\\", "/");
+  return !path.isAbsolute(value)
+    && !/^[A-Za-z]:\//.test(normalized)
+    && normalized !== ".."
+    && !normalized.startsWith("../")
+    && !normalized.includes("/../")
+    && !normalized.startsWith(".codex/")
+    && !["PROJECT_STATE.md", "MORNING_REPORT.md"].includes(normalized);
+}
+
+function validateQualityGates(value: unknown, taskId: string): QualityGateDefinition[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) throw new Error(`Task ${taskId} qualityGates must be an array.`);
+  const ids = new Set<string>();
+  return value.map((raw, index) => {
+    if (typeof raw !== "object" || raw === null) throw new Error(`Task ${taskId} quality gate ${index + 1} must be an object.`);
+    const gate = raw as Record<string, unknown>;
+    if (!nonEmptyString(gate.id) || !nonEmptyString(gate.command)) throw new Error(`Task ${taskId} quality gate ${index + 1} requires non-empty id and command.`);
+    if (ids.has(gate.id)) throw new Error(`Task ${taskId} declares duplicate quality gate id: ${gate.id}.`);
+    ids.add(gate.id);
+    if (gate.kind !== "integration" && gate.kind !== "user_path") throw new Error(`Task ${taskId} quality gate ${gate.id} kind must be integration or user_path.`);
+    if (!stringList(gate.evidencePaths)) throw new Error(`Task ${taskId} quality gate ${gate.id} evidencePaths must be a non-empty array of non-empty strings.`);
+    for (const evidencePath of gate.evidencePaths) {
+      if (!safeRelativeEvidencePath(evidencePath)) throw new Error(`Task ${taskId} quality gate ${gate.id} evidence path must stay inside the repository and outside controller-owned artifacts: ${evidencePath}`);
+    }
+    return { id: gate.id, kind: gate.kind, command: gate.command, evidencePaths: gate.evidencePaths };
+  });
+}
+
+function validateReadiness(value: unknown): ReadinessRequirements | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "object" || value === null) throw new Error("Task document readiness must be an object.");
+  const readiness = value as Record<string, unknown>;
+  if (!stringListOrEmpty(readiness.requiredCommands)) throw new Error("Task document readiness.requiredCommands must be an array of command names.");
+  if (!readiness.requiredCommands.every((command) => /^[A-Za-z0-9._-]+$/.test(command))) throw new Error("Task document readiness.requiredCommands may contain command names only.");
+  if (!stringListOrEmpty(readiness.requiredEnvironment)) throw new Error("Task document readiness.requiredEnvironment must be an array of environment-variable names.");
+  if (!readiness.requiredEnvironment.every((name) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(name))) throw new Error("Task document readiness.requiredEnvironment contains an invalid environment-variable name.");
+  if (!['none', 'optional', 'required'].includes(String(readiness.network))) throw new Error("Task document readiness.network must be none, optional, or required.");
+  let bootstrap: ReadinessRequirements["bootstrap"];
+  if (readiness.bootstrap !== undefined) {
+    if (typeof readiness.bootstrap !== "object" || readiness.bootstrap === null) throw new Error("Task document readiness.bootstrap must be an object.");
+    const candidate = readiness.bootstrap as Record<string, unknown>;
+    if (!nonEmptyString(candidate.installCommand) || !nonEmptyString(candidate.checkCommand)) throw new Error("Task document readiness.bootstrap requires non-empty installCommand and checkCommand.");
+    bootstrap = { installCommand: candidate.installCommand, checkCommand: candidate.checkCommand };
+  }
+  return {
+    requiredCommands: [...new Set(readiness.requiredCommands)],
+    requiredEnvironment: [...new Set(readiness.requiredEnvironment)],
+    network: readiness.network as ReadinessRequirements["network"],
+    bootstrap
+  };
 }
 
 export function validateTaskGraph(tasks: TaskDefinition[]): void {
@@ -89,11 +147,12 @@ export function validateTaskDocument(value: unknown): TaskDocument {
       objective: task.objective,
       acceptanceCriteria: task.acceptanceCriteria,
       verification: task.verification,
-      dependsOn: task.dependsOn
+      dependsOn: task.dependsOn,
+      qualityGates: validateQualityGates(task.qualityGates, task.id)
     };
   });
   validateTaskGraph(tasks);
-  return { schemaVersion: 2, tasks };
+  return { schemaVersion: 2, readiness: validateReadiness(candidate.readiness), tasks };
 }
 
 export function loadTaskDocument(file: string): { file: string; document: TaskDocument; hash: string } {

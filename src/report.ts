@@ -1,11 +1,22 @@
 import { TaskDocument, WorkflowPaths, WorkflowState } from "./types";
 import { writeText } from "./storage";
 import { gitSnapshot } from "./git";
+import { projectMemoryCounts } from "./project-memory";
 
 const path = require("node:path");
 
 function bulletList(values: string[] | undefined): string[] {
   return values?.length ? values.map((value) => `- ${value}`) : ["- None."];
+}
+
+function commandArgument(value: string): string {
+  return /^[A-Za-z0-9_./:\\-]+$/.test(value) ? value : `"${value.replaceAll('"', '\\"')}"`;
+}
+
+function workflowCommand(): string {
+  const configured = process.env.CODEX_WORKFLOW_COMMAND?.trim();
+  if (configured) return configured;
+  return `${commandArgument(process.execPath)} ${commandArgument(path.join(__dirname, "index.js"))}`;
 }
 
 function changedPaths(paths: WorkflowPaths, state: WorkflowState): { preExisting: string[]; workflow: string[] } {
@@ -28,6 +39,8 @@ export function writeHandoff(paths: WorkflowPaths, state: WorkflowState, documen
   const open = Object.entries(state.tasks).filter(([, task]) => ["pending", "needs_review", "running"].includes(task.automationStatus));
   const changes = changedPaths(paths, state);
   const proposal = state.approvedProjectState;
+  const command = workflowCommand();
+  const targetOptions = `--cwd ${commandArgument(paths.cwd)} --state-dir ${commandArgument(paths.stateDir)}`;
   const lines = [
     "# Codex Workflow Handoff",
     "",
@@ -42,9 +55,9 @@ export function writeHandoff(paths: WorkflowPaths, state: WorkflowState, documen
   lines.push("", "## Human accepted");
   lines.push(...(accepted.length ? accepted.map(([id, task]) => `- \`${id}\`${task.humanAcceptanceAt ? ` at ${task.humanAcceptanceAt}` : ""}${task.checkpoint ? `; checkpoint \`${task.checkpoint}\`` : ""}`) : ["- None."]));
   lines.push("", "## Awaiting human acceptance");
-  lines.push(...(awaitingAcceptance.length ? awaitingAcceptance.map(([id]) => `- \`${id}\`: run \`codex-workflow accept --task ${id}\` or \`codex-workflow reject --task ${id} --reason \"<reason>\"\`.`) : ["- None."]));
+  lines.push(...(awaitingAcceptance.length ? awaitingAcceptance.map(([id]) => `- \`${id}\`: run \`${command} accept ${targetOptions} --task ${commandArgument(id)}\` or \`${command} reject ${targetOptions} --task ${commandArgument(id)} --reason \"<reason>\"\`.`) : ["- None."]));
   lines.push("", "## Rejected");
-  lines.push(...(rejected.length ? rejected.map(([id, task]) => `- \`${id}\`: ${task.lastFeedback ?? task.lastAssessment ?? "No rejection reason recorded."}; rework with \`codex-workflow resume --tasks ${state.taskSourceFile} --mode ${state.mode}\`${task.checkpoint ? `; preserved checkpoint \`${task.checkpoint}\`` : ""}.`) : ["- None."]));
+  lines.push(...(rejected.length ? rejected.map(([id, task]) => `- \`${id}\`: ${task.lastFeedback ?? task.lastAssessment ?? "No rejection reason recorded."}; rework with \`${command} resume ${targetOptions} --tasks ${commandArgument(state.taskSourceFile)} --mode ${state.mode}\`${task.checkpoint ? `; preserved checkpoint \`${task.checkpoint}\`` : ""}.`) : ["- None."]));
   lines.push("", "## Blocked or dependency-blocked");
   lines.push(...(blocked.length ? blocked.map(([id, task]) => `- \`${id}\`: ${task.blockerReason ?? task.lastAssessment ?? "No reason recorded."}`) : ["- None."]));
   lines.push("", "## Limit reached");
@@ -81,7 +94,31 @@ export function writeHandoff(paths: WorkflowPaths, state: WorkflowState, documen
     const validation = task.validation;
     if (!validation) continue;
     lines.push(`- \`${id}\`: \`${validation.status}\`${validation.commands.length ? `; logs: ${validation.commands.map((command) => command.outputFile).join(", ")}` : ""}`);
+    for (const gate of validation.qualityGates ?? []) {
+      lines.push(`  - Quality gate \`${gate.id}\` [${gate.kind}]: \`${gate.status}\`; log \`${gate.command.outputFile}\``);
+      for (const evidence of gate.evidence) {
+        lines.push(`    - Evidence \`${evidence.path}\`: ${evidence.exists && evidence.regularFile && evidence.fresh && evidence.sha256 ? `fresh; ${evidence.bytes ?? 0} bytes; SHA-256 \`${evidence.sha256}\`` : evidence.failure ?? "missing, stale, or not a regular file"}`);
+      }
+    }
   }
+  lines.push("", "## Readiness");
+  if (state.readiness) {
+    lines.push(`- Level: \`${state.readiness.level}/4\`; required: \`${state.readiness.minimumLevel}/4\`; gate: \`${state.readiness.ready ? "passed" : "failed"}\``);
+    lines.push(`- Summary: ${state.readiness.summary}`);
+    lines.push(`- Report: \`${paths.readinessReportFile}\``);
+    for (const check of state.readiness.checks.filter((item) => item.status !== "pass")) lines.push(`- ${check.status}: \`${check.code}\` — ${check.detail}`);
+  } else {
+    lines.push("- No readiness assessment was recorded for this run.");
+  }
+  lines.push("", "## Project memory");
+  try {
+    const memory = projectMemoryCounts(paths);
+    lines.push(`- Active: ${memory.active}; stale: ${memory.stale}; missing: ${memory.missing}; expired: ${memory.expired}; archived: ${memory.archived}; total retained: ${memory.total}.`);
+  } catch (error) {
+    lines.push(`- Unreadable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  lines.push(`- Report: \`${paths.projectMemoryReportFile}\``);
+  lines.push("- Only validated, task-relevant active entries are injected into worker context; inactive entries remain available for audit.");
   lines.push("", "## Changed paths");
   lines.push(`- Pre-existing at run start: ${changes.preExisting.length ? changes.preExisting.map((item) => `\`${item}\``).join(", ") : "none"}`);
   lines.push(`- Workflow-created or changed: ${changes.workflow.length ? changes.workflow.map((item) => `\`${item}\``).join(", ") : "none"}`);
@@ -114,7 +151,7 @@ export function writeHandoff(paths: WorkflowPaths, state: WorkflowState, documen
     lines.push(`- \`${task.id}\` — ${task.title}`);
     lines.push(...(task.acceptanceCriteria.length ? task.acceptanceCriteria.map((criterion) => `  - [ ] ${criterion}`) : ["  - [ ] No explicit acceptance criteria were supplied."]));
   }
-  lines.push("", "## Artifacts", `- State: \`${paths.stateFile}\``, `- Events: \`${paths.eventsFile}\``, `- Failure memory: \`${paths.failureFile}\``, `- Handoff: \`${paths.handoffFile}\``, `- Project state: \`${path.join(paths.cwd, "PROJECT_STATE.md")}\``);
+  lines.push("", "## Artifacts", `- State: \`${paths.stateFile}\``, `- Events: \`${paths.eventsFile}\``, `- Failure memory: \`${paths.failureFile}\``, `- Project memory JSON: \`${paths.projectMemoryFile}\``, `- Project memory report: \`${paths.projectMemoryReportFile}\``, `- Readiness JSON: \`${paths.readinessFile}\``, `- Readiness report: \`${paths.readinessReportFile}\``, `- Handoff: \`${paths.handoffFile}\``, `- Project state: \`${path.join(paths.cwd, "PROJECT_STATE.md")}\``);
   if (state.mode === "night") lines.push(`- Morning report: \`${path.join(paths.cwd, "MORNING_REPORT.md")}\``);
   const content = `${lines.join("\n")}\n`;
   writeText(paths.handoffFile, content);

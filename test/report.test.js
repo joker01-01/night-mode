@@ -27,6 +27,8 @@ function execution(automationStatus, humanAcceptanceStatus = "not_requested", ex
 }
 
 test("handoff and morning report expose every task outcome and human action", () => {
+  const previousCommand = process.env.CODEX_WORKFLOW_COMMAND;
+  process.env.CODEX_WORKFLOW_COMMAND = "node /installed/night-mode/scripts/night-mode";
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "workflow-report-"));
   const paths = workflowPaths(directory);
   const document = {
@@ -79,11 +81,15 @@ test("handoff and morning report expose every task outcome and human action", ()
   for (const section of ["Provisionally complete", "Human accepted", "Rejected", "Blocked or dependency-blocked", "Limit reached", "Decisions and reviewer evidence", "Important decisions", "Known problems and risks", "Next actions", "Dependencies and downstream impact", "Verification evidence", "Changed paths", "Resource limits", "Checkpoints", "Acceptance checklist"]) {
     assert.match(handoff, new RegExp(`## ${section}`));
   }
-  assert.match(handoff, /codex-workflow accept --task awaiting/);
-  assert.match(handoff, /codex-workflow reject --task awaiting/);
+  assert.match(handoff, /node \/installed\/night-mode\/scripts\/night-mode accept .*--task awaiting/);
+  assert.match(handoff, /node \/installed\/night-mode\/scripts\/night-mode reject .*--task awaiting/);
+  assert.match(handoff, /--cwd/);
+  assert.match(handoff, /--state-dir/);
   assert.match(handoff, /preserved checkpoint `ghi789`/);
   assert.match(handoff, /preexisting\.txt/);
   assert.match(handoff, /workflow\.txt/);
   assert.match(handoff, /Keep machine state out of checkpoints/);
   assert.match(handoff, /External dependency unavailable/);
+  if (previousCommand === undefined) delete process.env.CODEX_WORKFLOW_COMMAND;
+  else process.env.CODEX_WORKFLOW_COMMAND = previousCommand;
 });

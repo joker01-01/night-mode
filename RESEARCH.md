@@ -248,3 +248,57 @@ Legend: **Yes** means an implementation was located. **Partial** means the capab
 ### Approval outcome
 
 The V1 boundary was approved on 2026-08-20. The implementation is a dependency-light Node.js/TypeScript CLI with immutable task documents, file-backed workflow state, separate Codex worker/reviewer phases, declared verification, failure memory, handoff reports, and opt-in Git checkpoints. Live Codex execution remains a separate integration acceptance step.
+
+---
+
+## 2026-08-29 Market Reassessment — Stronger Capabilities Only
+
+### Method and boundary
+
+This pass intentionally excludes products that merely repeat the Ralph loop patterns already evaluated above. A capability is included only when current official documentation or inspected source establishes a material advantage over Night-Mode. Commercial products are documentation-verified, not source-verified. OpenHands Agent Canvas was shallow-cloned and inspected locally at commit `f26d734a848297d8dcf460b0bb739174e76511f0` (MIT); the snapshot is a frontend/operations surface, so it does not prove Agent Server internals. A second source checkout of `block/goose` did not complete because the network transfer stalled; no Goose capability claim is made.
+
+### Where the market is genuinely ahead
+
+| Product / system | Verified stronger capability | What Night-Mode should absorb | Decision |
+| --- | --- | --- | --- |
+| [GitHub Copilot Memory](https://docs.github.com/en/copilot/concepts/agents/copilot-memory) | Repository facts carry citations, are revalidated against the current branch before use, and can be shared across agent/review/CLI surfaces. | Add source path + content hash/commit + `lastValidatedAt` to durable learnings; reject or archive a fact when its evidence no longer matches. | **ADAPTED 2026-08-29** |
+| [Factory Missions](https://docs.factory.ai/missions/overview) | Collaborative feature/milestone planning, an Agent Readiness prerequisite, orchestration visibility, and user-facing application QA with self-correction. | Add a deterministic `readiness` command and Night preflight for bootstrap, tests, integration/user-flow verification, secrets/network assumptions, and task quality. Add evidence artifacts for user-path QA rather than relying only on shell exit codes. | **ADAPTED 2026-08-29** |
+| [Claude Code hooks](https://code.claude.com/docs/en/hooks-guide) | A broad lifecycle hook surface can observe tool use, enforce policy, run checks, and retain audit records. | Add typed, default-off controller hooks around worker, validation, review, stop, limit, and human-decision boundaries. Define observe vs block semantics, timeout, output schema, and failure policy in the controller. | **ADAPT** |
+| [Codex long-running Goal mode](https://learn.chatgpt.com/docs/long-running-work) | The user can pause, resume, edit constraints, send follow-up context, and ask for status while work is running. | Keep file controls, but add an atomic feedback/steering inbox and a concise live status command so the next safe phase boundary can consume new human constraints without mutating the immutable task source. | **ADAPT** |
+| [Cloudflare long-running agents](https://developers.cloudflare.com/agents/concepts/agentic-patterns/long-running-agents/) | Durable entities wake/work/sleep, checkpoint long work, recover interrupted streams, and isolate retryable workflow steps. | Evolve the current task-level resume into a phase journal with phase input/output hashes and idempotency keys, so recovery repeats at most the unfinished phase and never mistakes a replay for new work. | **ADAPT** |
+| OpenHands Agent Canvas source snapshot | Source contains paused-sandbox-aware reconnect behavior, REST history hydration, conversation-scoped usage/cost reset, child-conversation event handling, and scheduled/event-triggered automation UI integration (`docs/architecture.md`, `src/contexts/websocket-provider-wrapper.tsx`, `src/contexts/conversation-websocket-context.tsx`). | Preserve backend/runner separation if a UI is added; scope metrics and event state per run; represent paused runtime and reconnect explicitly; never infer backend state from a stale socket. | **DEFER UI, KEEP CONTRACT** |
+
+### Product priority after M9
+
+1. **Evidence-backed project memory — implemented 2026-08-29.** Reviewer-gated decisions/learnings/constraints now retain exact cited text and SHA-256, revalidate and uniquely relocate source lines, expire unused records after a resettable 28-day window, preserve invalid/archive history, and inject only active task-relevant entries.
+2. **Readiness and user-path QA — implemented 2026-08-29.** `readiness` now emits JSON/Markdown, Night enforces a selectable level, bootstrap health is non-mutating, secrets are presence-only, and integration/user-path gates require fresh artifact hashes rather than trusting exit zero or stale evidence.
+3. **Lifecycle hook contract.** Expose safe integration points for policy, audit, notifications, and project-specific checks, while keeping hard sandbox/Git rules controller-owned and non-overridable.
+4. **Phase checkpoint journal.** Persist phase boundaries and idempotency evidence so a crash has a smaller replay radius than the current whole-phase/task recovery model.
+5. **Live steering and observability.** Add human feedback ingestion, per-phase status, timing, and token/cost fields when Codex JSONL supplies them.
+
+### Readiness ideas absorbed, not copied
+
+- Factory's Level 4 and user-facing QA concepts were translated into a local, deterministic 0–4 report rather than importing its hosted orchestration model. The default remains level 2 for backward compatibility; the human can demand 3 or 4 and the controller may never lower that choice.
+- The target bootstrap install command is documented but never run. Only a bounded health check executes, and any Git-representation change makes readiness fail. This preserves Night-Mode's authority boundary instead of adopting an automatic readiness-fix workflow.
+- User-path QA is controller-owned evidence, not prompt advice. A zero exit is insufficient: every declared artifact must be a fresh non-symlink regular file from the current invocation, stay inside the repository, remain outside controller state, fit a hashing cap, and receive a recorded size and SHA-256.
+- Playwright-style traces, screenshots, structured assertions, and CLI transcripts can be used without coupling the controller to one test framework. The contract standardizes evidence properties, not the QA tool.
+
+### Project-memory ideas absorbed, not copied
+
+- GitHub's citation-and-validation principle was adopted, but Night-Mode keeps the cited text and SHA-256 locally so the controller can validate facts deterministically without a hosted memory service.
+- Revalidation recognizes an unchanged range or one unique relocation of the exact cited lines. Changed, ambiguous, missing, secret-like, controller-owned, symbolic-link, and out-of-repository evidence is never passed to a worker.
+- Memory creation follows the existing authority chain: worker proposes, the independent read-only reviewer approves or corrects, and the controller captures evidence only after the full completion gate. A schema-valid candidate with unsafe or uncapturable evidence is rejected and logged rather than making valid product work fail; structurally malformed reviewer output still fails the review contract.
+- Retrieval is bounded and task-relevant rather than injecting the entire history. Active constraints remain globally visible; ordinary decisions and learnings need lexical/tag relevance to the current task.
+- The 28-day unused-memory idea is adapted as expiration rather than automatic deletion. Relevant use resets the window; expired, stale, missing, and human-archived records remain visible in JSON/Markdown for audit and can never silently influence a worker.
+- Manual add, validate, list, and archive operations use the same lock boundary as workflow runs. Candidate fields and source reads are bounded; they cannot cite controller state, Git internals, secrets, symlinks, external files, or unbounded source ranges.
+
+### Deliberately deferred
+
+- **Parallel coding agents:** Claude teams provide shared task lists and messaging, but their own documentation warns that token use and coordination overhead scale with teammates. Night-Mode should add parallelism only after isolated worktrees, an integration queue, conflict handling, and a final cross-branch reviewer exist; never share one writable worktree.
+- **Hosted VM/sandbox product:** useful, but it turns this repository into infrastructure, secrets, network-policy, and billing software. Keep Night-Mode as a local controller first and define a runtime adapter boundary later.
+- **Mission Control/dashboard:** OpenHands and Factory have stronger operational UI. A dashboard should consume stable events/status contracts after those contracts mature; it should not become V1 correctness infrastructure.
+- **Automatic task/PRD rewriting:** Factory-style plan collaboration is useful before execution, but approved requirements remain human-owned. Generate a proposal or new task document; never rewrite the active immutable source during a run.
+
+### Competitive conclusion
+
+Night-Mode is not behind on its core safety thesis: immutable requirements, controller-owned validation, a separate read-only reviewer, provisional completion, explicit human accept/reject, bounded Night execution, evidence-preserving failure state, readiness/user-path evidence, and self-invalidating citation-backed memory now form a coherent differentiator. It remains behind mature products in live steering, extension hooks, phase-granular durability, hosted execution, and operational UI. Typed lifecycle hooks are now the next product enhancement with the best leverage-to-risk ratio.

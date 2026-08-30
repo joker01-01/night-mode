@@ -40,6 +40,30 @@ test("task schema v2 requires acceptance, verification, and explicit dependencie
   }
 });
 
+test("task schema validates readiness assumptions and artifact-backed quality gates", () => {
+  const task = {
+    id: "one",
+    title: "One",
+    objective: "Do one thing",
+    acceptanceCriteria: ["It works"],
+    verification,
+    dependsOn: [],
+    qualityGates: [{ id: "user-smoke", kind: "user_path", command: "npm run smoke", evidencePaths: ["artifacts/user-smoke.json"] }]
+  };
+  const document = {
+    schemaVersion: 2,
+    readiness: { requiredCommands: ["node"], requiredEnvironment: ["PATH"], network: "none", bootstrap: { installCommand: "npm ci", checkCommand: "node --version" } },
+    tasks: [task]
+  };
+  const validated = validateTaskDocument(document);
+  assert.equal(validated.tasks[0].qualityGates[0].kind, "user_path");
+  assert.equal(validated.readiness.network, "none");
+
+  assert.throws(() => validateTaskDocument({ ...document, tasks: [{ ...task, qualityGates: [{ ...task.qualityGates[0], evidencePaths: ["../outside.json"] }] }] }), /must stay inside/);
+  assert.throws(() => validateTaskDocument({ ...document, tasks: [{ ...task, qualityGates: [{ ...task.qualityGates[0], evidencePaths: [".codex/workflow/fake.json"] }] }] }), /controller-owned/);
+  assert.throws(() => validateTaskDocument({ ...document, readiness: { ...document.readiness, requiredEnvironment: ["NOT-VALID-NAME"] } }), /invalid environment-variable/);
+});
+
 test("task dependency graph rejects unknown, self, duplicate, and cyclic dependencies", () => {
   const task = (id, dependsOn) => ({ id, title: id, objective: id, acceptanceCriteria: ["done"], verification, dependsOn });
   assert.throws(() => validateTaskGraph([task("one", ["missing"])]), /unknown task/);

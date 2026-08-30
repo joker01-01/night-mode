@@ -6,17 +6,44 @@ import { assertProjectStateProposal, assertProjectStateReview } from "./state";
 const path = require("node:path");
 const fs = require("node:fs");
 
+const memoryCandidateSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "statement", "tags", "citations"],
+  properties: {
+    kind: { enum: ["decision", "learning", "constraint"] },
+    statement: { type: "string", minLength: 1, maxLength: 1000 },
+    tags: { type: "array", minItems: 1, maxItems: 12, items: { type: "string", minLength: 1, maxLength: 64 } },
+    citations: {
+      type: "array",
+      minItems: 1,
+      maxItems: 5,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["path", "startLine", "endLine"],
+        properties: {
+          path: { type: "string", minLength: 1 },
+          startLine: { type: "integer", minimum: 1 },
+          endLine: { type: "integer", minimum: 1 }
+        }
+      }
+    }
+  }
+};
+
 const projectStateProposalSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["outcomeSummary", "importantDecisions", "knownProblems", "verificationEvidence", "nextActions", "humanAcceptanceActions"],
+  required: ["outcomeSummary", "importantDecisions", "knownProblems", "verificationEvidence", "nextActions", "humanAcceptanceActions", "memoryCandidates"],
   properties: {
     outcomeSummary: { type: "string", minLength: 1 },
     importantDecisions: { type: "array", items: { type: "string", minLength: 1 } },
     knownProblems: { type: "array", items: { type: "string", minLength: 1 } },
     verificationEvidence: { type: "array", items: { type: "string", minLength: 1 } },
     nextActions: { type: "array", items: { type: "string", minLength: 1 } },
-    humanAcceptanceActions: { type: "array", items: { type: "string", minLength: 1 } }
+    humanAcceptanceActions: { type: "array", items: { type: "string", minLength: 1 } },
+    memoryCandidates: { type: "array", items: memoryCandidateSchema }
   }
 };
 
@@ -106,6 +133,8 @@ export function parseWorkResult(file: string): WorkResult {
     throw new Error("Worker reported BLOCKED without blockerReason.");
   }
   if (data.projectStateProposal === undefined) throw new Error("Worker final message requires projectStateProposal.");
+  const proposal = data.projectStateProposal as Record<string, unknown>;
+  proposal.memoryCandidates ??= [];
   assertProjectStateProposal(data.projectStateProposal);
   return {
     status: data.status as WorkResult["status"],
@@ -123,6 +152,8 @@ export function parseReviewResult(file: string): ReviewResult {
     throw new Error("Reviewer final message does not match the review contract.");
   }
   if (data.projectStateReview === undefined) throw new Error("Reviewer final message requires projectStateReview.");
+  const stateReview = data.projectStateReview as Record<string, unknown>;
+  if (typeof stateReview.proposal === "object" && stateReview.proposal !== null) (stateReview.proposal as Record<string, unknown>).memoryCandidates ??= [];
   assertProjectStateReview(data.projectStateReview);
   return {
     decision: data.decision as ReviewResult["decision"],

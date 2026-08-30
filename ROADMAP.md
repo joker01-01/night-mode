@@ -1,6 +1,6 @@
 # Codex Development Workflow — V1 Delivery Roadmap
 
-Status: Milestones 0 through 8 complete; Milestone 9 is in progress. M9 remains unaccepted until the real Codex acceptance matrix passes.
+Status: Milestones 0 through 9, V1 functional acceptance, and local Milestone 10 release closeout are complete under MIT. The release commit and `v0.1.0` tag remain local until the repository owner separately authorizes push.
 
 The phases are ordered. Each phase must be implemented, verified, reviewed, documented, and stopped for human inspection before the next independent phase begins.
 
@@ -192,6 +192,8 @@ Exit gate:
 
 ## Milestone 10 — Documentation and V1 Release Candidate
 
+Status: MIT release committed and tagged locally on 2026-08-30; remote publication intentionally pending.
+
 Goal: make V1 installable, operable, and reviewable by someone without this conversation.
 
 Work:
@@ -205,7 +207,8 @@ Work:
 Exit gate:
 
 - a new operator can install, configure, run, stop, resume, inspect, accept, and reject using repository documentation alone;
-- V1 remains unaccepted until the user reviews the final evidence.
+- V1 functional acceptance evidence is complete and reviewed;
+- public release requires separate explicit authorization to push the already-created local release commit and `v0.1.0` tag.
 
 ## Deferred Beyond V1
 

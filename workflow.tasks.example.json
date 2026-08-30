@@ -1,5 +1,17 @@
 {
   "schemaVersion": 2,
+  "readiness": {
+    "requiredCommands": [
+      "node",
+      "git"
+    ],
+    "requiredEnvironment": [],
+    "network": "none",
+    "bootstrap": {
+      "installCommand": "npm ci",
+      "checkCommand": "node -e \"require.resolve('typescript')\""
+    }
+  },
   "tasks": [
     {
       "id": "example-001",
@@ -11,6 +23,16 @@
       ],
       "verification": [
         "npm test"
+      ],
+      "qualityGates": [
+        {
+          "id": "cli-user-path",
+          "kind": "user_path",
+          "command": "node -e \"const fs=require('fs'),cp=require('child_process');fs.mkdirSync('artifacts',{recursive:true});fs.writeFileSync('artifacts/night-mode-help.txt',cp.execFileSync(process.execPath,['scripts/night-mode','help']))\"",
+          "evidencePaths": [
+            "artifacts/night-mode-help.txt"
+          ]
+        }
       ],
       "dependsOn": []
     }

@@ -1,35 +1,47 @@
 ---
 name: night-mode
-description: Operate and extend the repository-local Codex Development Workflow runner with safe Interactive and Night Shift execution, review gates, resumable state, and human acceptance.
+description: Run, resume, inspect, accept, or reject a bounded Night-Mode Codex workflow in a Git repository. Use for operating the installed workflow runner; do not use for maintaining the Night-Mode source project itself.
 ---
 
-# Night-Mode
+# Night-Mode Runner
 
-Use this skill when working on this repository's Codex workflow runner or when a task needs its Interactive or Night Shift operating contract.
+Operate the bundled workflow controller against a user-selected Git repository. Resolve `scripts/night-mode` relative to this `SKILL.md`; never assume the target repository contains the runner.
 
-## Start with project state
+## Before running
 
-Read `AGENTS.md`, `TASK.md`, `PROJECT_STATE.md`, `README.md`, and the relevant source and tests before changing code. Treat `TASK.md` and `PRODUCT_REQUIREMENTS.md` as the requirements authority. Keep each change limited to the current task and preserve human-owned project-state text.
-
-## Operating contract
-
+- Read the target repository's `AGENTS.md` and the selected task document.
+- Keep `workflow.tasks.json` human-authored and immutable during a run.
 - Interactive mode is the default and requires one explicit task.
-- Night Shift is opt-in with explicit `--mode night`, total-runtime, task-count, and per-task attempt limits.
-- Task documents use schema version 2, with non-empty acceptance criteria, verification commands, and an explicit dependency list.
-- Never bypass dependencies, mutate the task source, change Git history, or use dangerous approval or sandbox bypass flags.
-- A worker `COMPLETE` and reviewer `SHIP` produce only provisional completion. Declared verification must pass, the task source hash must remain unchanged, and a human must explicitly accept the task before final completion.
-- Preserve failure evidence, handoff reports, project-state continuity, and resumable state when a run stops or fails.
+- Start Night Shift only after the user explicitly requests it. Keep total-runtime, task-count, and attempt limits enabled.
+- Do not add dangerous approval, sandbox-bypass, Git-history rewrite, reset, clean, or force flags.
 
-## Verification
+## Invoke the bundled runner
 
-After implementation, run the applicable typecheck, build, and test commands from the repository documentation. Do not claim completion from a worker result alone; inspect the generated state and evidence, and report the exact commands and outcomes.
-
-Common commands:
+Use Node with the wrapper path inside this installed skill:
 
 ```text
-npm run typecheck
-npm run build
-npm test
+node <skill-directory>/scripts/night-mode help
+node <skill-directory>/scripts/night-mode readiness --cwd <target-repository> --tasks workflow.tasks.json
+node <skill-directory>/scripts/night-mode run --cwd <target-repository> --tasks workflow.tasks.json --task <id>
+node <skill-directory>/scripts/night-mode run --cwd <target-repository> --tasks workflow.tasks.json --mode night
+node <skill-directory>/scripts/night-mode resume --cwd <target-repository> --tasks workflow.tasks.json --mode night
+node <skill-directory>/scripts/night-mode status --cwd <target-repository>
+node <skill-directory>/scripts/night-mode memory list --cwd <target-repository>
+node <skill-directory>/scripts/night-mode memory validate --cwd <target-repository>
 ```
 
-For a human decision, use `accept --task <id>` or `reject --task <id> --reason "..."` only after reviewing the handoff and evidence.
+The wrapper locates its own installation, checks Node and build dependencies, installs missing development dependencies with the available lockfile-aware package manager, builds when needed, and then launches the runner.
+
+Before Night Shift, inspect `READINESS.md`. The default Night gate requires level 2; use `--min-readiness 3` for artifact-backed integration coverage or `--min-readiness 4` for explicit bootstrap assumptions and user-path QA on every task. Never lower the requested level merely to start a run. Readiness health checks may inspect but must not mutate the target, and the runner never executes a declared install command automatically.
+
+## Project memory
+
+Workers receive only active memories that match the selected task. Each memory is backed by exact repository-relative line citations and a content hash; the controller revalidates citations before use, relocates uniquely moved text, and excludes stale, missing, expired, or archived entries without deleting their audit history.
+
+Reviewer-approved completion may add durable decisions, learnings, or constraints. Inspect `.codex/workflow/PROJECT_MEMORY.md`; use `memory validate` after broad repository changes, `memory archive --id <id> --reason <text>` to retire an entry, and `memory add --kind <kind> --statement <text> --tags <csv> --source <path:start-end>` only for a human-confirmed repository fact. Never cite secrets, controller state, symlinks, or paths outside the target repository.
+
+## Completion and human authority
+
+A worker `COMPLETE`, passing declared verification and quality gates, and reviewer `SHIP` produce only `provisionally_complete`. Inspect `HANDOFF.md`, readiness, validation logs, fresh evidence hashes, reviewer evidence, changed paths, and any checkpoint before running the exact `accept` or `reject` command printed in the handoff.
+
+Preserve failure evidence, `PROJECT_STATE.md`, resumable state, and Morning Reports. Report actual worker, verification, reviewer, and human-acceptance states separately.
