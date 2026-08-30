@@ -2,7 +2,7 @@
 
 ## Release status
 
-Version `0.1.0` is technically complete and has passed V1 functional acceptance. The repository owner selected MIT and authorized a local release commit plus annotated `v0.1.0` tag. The commit and tag are intentionally not pushed, so this checklist does not claim that the release is public.
+Version `0.1.0` is technically complete and has passed V1 functional acceptance. The repository owner selected MIT, authorized the release commit and annotated `v0.1.0` tag, then separately authorized their atomic push. Remote `main` and the peeled tag were verified at the same release commit.
 
 No npm publication is planned. The supported distribution path is the GitHub Codex Skill installer documented in `README.md`; `package.json` remains private to prevent accidental npm publication.
 
@@ -57,18 +57,15 @@ No npm publication is planned. The supported distribution path is the GitHub Cod
 - [x] Review the full V1 release scope, including new release files, source, and tests.
 - [x] Authorize and create the local release commit.
 - [x] Authorize and create the annotated `v0.1.0` tag.
-- [ ] Authorize pushing the commit and tag to `origin`.
+- [x] Authorize and atomically push the commit and tag to `origin`; remote `main` and peeled `v0.1.0` were verified at `3ebca156cd484ef1fad664edcda3abd378bdab1e`.
 
 ## Release commands
 
-The local commit and tag commands are the authorized release closeout. The push commands remain documentation only and have not been executed:
+The following commands document the completed release sequence. The commit and annotated tag were created locally, then `main` and `v0.1.0` were pushed atomically after separate owner authorization:
 
 ```text
 git add <reviewed V1 files>
 git commit -m "release: Night-Mode v0.1.0"
 git tag -a v0.1.0 -m "Night-Mode v0.1.0"
-
-# Not executed without separate owner authorization:
-git push origin main
-git push origin v0.1.0
+git push --atomic origin main v0.1.0
 ```

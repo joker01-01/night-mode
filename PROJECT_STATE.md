@@ -2,7 +2,7 @@ PROJECT_STATE.md
 
 Current Stage
 
-Final V1 requirements and delivery roadmap are complete. Milestones 0 through 9 passed, including the full controlled real-Codex acceptance matrix in section 17. Version `0.1.0` uses the MIT license and is committed and tagged locally; remote publication remains intentionally pending.
+Final V1 requirements and delivery roadmap are complete. Milestones 0 through 9 passed, including the full controlled real-Codex acceptance matrix in section 17. MIT-licensed version `0.1.0` is published on `origin/main` with annotated tag `v0.1.0` at commit `3ebca15`.
 
 当前 `0.1.0` 实现已通过本地测试，并修复 Windows PowerShell UTF-8 BOM、全局 npm Codex 启动和 Codex 严格 structured-output schema 的兼容问题。M0 的真实 PowerShell Interactive 基线已通过：worker 成功、声明的 verification 通过、只读 reviewer 返回 `SHIP`，并生成证明文件和 handoff。
 
@@ -55,7 +55,9 @@ M9 历史验收：Session 0 runner 根因已确认是非交互 Window Station/De
 
 M9 最终真实矩阵已在 `.m9-acceptance/final-matrix-20260829-f2` 完成，成功证据按 Windows v2/v3/v4 运行分组保存，并由 `verify-matrix.js` 统一断言 8/8 通过。verification-failure 由真实 worker `COMPLETE`、控制器 exit 17 和真实 reviewer `REVISE` 得到 `validation_failed`；confirmed-blocker 由真实 worker/reviewer 共同确认第三方批准不可用并记录 `reviewer_blocked`；reviewer phase 受控以 exit 23 失败并记录 reviewer `phase_failure`。total-runtime=0 在未启动 Codex 时得到 `total_runtime_reached`；maxTasks=1 只完成 `max-one`，`max-two` 保持 pending/attempts 0 并生成 Morning Report。脏 Interactive 允许运行并禁用 checkpoint；脏 Night 默认在启动 Codex 前 exit 1；`--allow-dirty` Night 记录起始 baseline、禁用 checkpoint、完成真实 review 并生成 Morning Report。为把控制器边界与 Windows SSH Session 0 的本地 shell 限制分离，phase/max/dirty 夹具使用预提交 proof，由控制器验证精确 SHA-256；真实 worker/reviewer 仍按产品 sandbox 实际启动。所有 8 个任务源 hash 均未变化，所有 workflow lock 已释放，调用参数无 dangerous 或 Git bypass 选项，用户脏文件 hash 前后相同；每个临时 GUI ACL 窗口都恢复到 Window Station `2EB6E67D...42C3D` / Desktop `DBB18938...619F` 基线。最终远端 fixture 进程数为 0，受验 runner `dist/index.js` SHA-256 为 `FDBF2B5D...BDB`。至此 M9 与 `PRODUCT_REQUIREMENTS.md` 第 17 节全部通过，V1 acceptance 完成。
 
-2026-08-30 V1 release closeout 已完成：`CHANGELOG.md`、`RELEASE_CHECKLIST.md`、README、ROADMAP、requirements 与当前状态已对齐；根用户 Skill 和 maintainer Skill 均通过官方 Skill Creator validator；`scripts/night-mode help` 成功；`npm pack --dry-run --json` 产生 70 个受控条目，包含 MIT LICENSE 与所需 Skill/wrapper/source/docs，且不含 `.m9-acceptance/`、`research/references/` 或 `node_modules/`；`npm audit --json` 报告 0 个已知漏洞；M9 matrix 重新断言 8/8；typecheck/build 与 70/70 tests 通过。源码 diff 审查未发现危险 sandbox/Git bypass、破坏性 Git 命令、调试残留或本机绝对路径。发布方式明确为 GitHub Codex Skill，package 维持 `private: true` 并标记 `MIT`。仓库所有者已授权本地 release commit 与 annotated `v0.1.0` tag；两者未 push，远端仍保持旧状态。
+2026-08-30 V1 release closeout 已完成：`CHANGELOG.md`、`RELEASE_CHECKLIST.md`、README、ROADMAP、requirements 与当前状态已对齐；根用户 Skill 和 maintainer Skill 均通过官方 Skill Creator validator；`scripts/night-mode help` 成功；`npm pack --dry-run --json` 产生 70 个受控条目，包含 MIT LICENSE 与所需 Skill/wrapper/source/docs，且不含 `.m9-acceptance/`、`research/references/` 或 `node_modules/`；`npm audit --json` 报告 0 个已知漏洞；M9 matrix 重新断言 8/8；typecheck/build 与 70/70 tests 通过。源码 diff 审查未发现危险 sandbox/Git bypass、破坏性 Git 命令、调试残留或本机绝对路径。发布方式明确为 GitHub Codex Skill，package 维持 `private: true` 并标记 `MIT`。Release commit `3ebca15` 与 annotated `v0.1.0` tag 已原子 push 到 `origin`，远端 main 与 tag target 均核验为完整 commit `3ebca156cd484ef1fad664edcda3abd378bdab1e`。
+
+2026-08-30 README 三语改造已在 working tree 完成：默认 `README.md` 保持英文，并新增完整的 `README.zh-CN.md` 与 `README.ja-JP.md`，三份文档顶部提供对称语言切换。结构吸收了已验证同类 Skill 的 value-first opening、Quick Start、直接 `$skill` 调用、产物说明和明确安全边界；没有复制无许可源码/文本，也没有引入未实现的 provider、并行、UI 或危险默认值。三份 README 均为 14 个二级章节、24 个 code-fence marker，本地链接和关键命令检查通过；typecheck、build、wrapper help 与 70/70 tests 通过；pack dry-run 为 72 个受控条目，三种语言文件均存在，且不含 acceptance fixture、研究仓库或依赖目录。本次文档改动仍待用户审阅、commit 与 push，不属于既有 `v0.1.0` tag。
 
 ---
 
@@ -196,15 +198,15 @@ Approved V1 Architecture
 
 Current Next Step
 
-1. 本地 MIT release commit 与 annotated `v0.1.0` tag 已完成；未经新的明确授权，不得 push。
-2. 若要公开 V1，仓库所有者下一步只需单独授权将 `main` 与 `v0.1.0` 推送到 `origin`；在此之前 GitHub 安装命令仍只会取得远端旧提交。
-3. 公开发布后再单独评审 typed lifecycle hooks；之后依次是 phase journal 和 live steering。它们是有意延后的 V2 增强，不是 V1 遗漏。
+1. 审阅当前 README 英/中/日三语内容、语言链接、命令一致性与调研记录；当前改动尚未 commit 或 push。
+2. 用户明确授权后，再为三语 README 创建独立文档 commit 并 push；不得移动或重写既有 `v0.1.0` tag。
+3. 文档完成后再单独评审 typed lifecycle hooks；之后依次是 phase journal 和 live steering。它们是有意延后的 V2 增强，不是 V1 遗漏。
 4. 保留既有 M9 fixture，以及 `.m9-acceptance/final-matrix-20260829-f2` 的成功和失败尝试、phase 日志、state、handoff、ACL 证据与矩阵校验脚本；不要把 ignored acceptance fixture 加入父仓库。
 
 ---
 
 Important
 
-当前阶段最危险的错误是把仅存在于本地、尚未 push 的 release commit/tag 误报成已经公开发布，或把 ignored acceptance fixture 误加入父仓库。
+当前阶段最危险的错误是把尚未 commit/push 的三语 README 误报成已经公开，移动既有 `v0.1.0` tag，或把 ignored acceptance fixture 误加入父仓库。
 
-当前唯一发布阻塞是所有者对 push 的单独显式授权；许可证、本地 release commit/tag、技术发布门和第 17 节真实运行场景均已完成。
+V1 已公开发布，许可证、release commit/tag、技术发布门和第 17 节真实运行场景均已完成。当前只剩三语 README 的人类审阅与单独发布决策。

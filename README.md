@@ -1,30 +1,48 @@
-# Codex Development Workflow
+# Night-Mode
 
-A file-backed, cross-platform workflow runner for Codex. It keeps requirements in an immutable task document and execution artifacts in `.codex/workflow/`.
+**English** | [简体中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
-## V1 status
+A file-backed, cross-platform Codex workflow controller for supervised daytime development and bounded autonomous Night Shift execution.
 
-Version `0.1.0` has completed the full automated suite and controlled real-Codex V1 acceptance matrix. The supported distribution path is installation from this GitHub repository as a Codex Skill; the Node package remains private to prevent accidental npm publication.
+`v0.1.0` · MIT · Node.js 22+ · Codex CLI · Windows / macOS / Linux
 
-The project is licensed under MIT. The V1 release commit is tagged locally as `v0.1.0`; it has intentionally not been pushed, so the public GitHub repository remains at its previous state until the owner separately authorizes publication. See `CHANGELOG.md` and `RELEASE_CHECKLIST.md`.
+Night-Mode keeps approved requirements immutable, starts each worker and reviewer with fresh context, runs verification outside the agent, preserves durable project state, and leaves final acceptance to a human.
 
-## Prerequisites
+## Why Night-Mode
+
+Long-running AI development usually fails in one of four places: context disappears between sessions, an agent declares success too early, unattended work drifts, or the human cannot quickly understand what changed. Night-Mode makes those boundaries explicit:
+
+- **Project continuity:** repository-backed state, handoff reports, failure memory, and citation-backed project memory survive fresh Codex contexts.
+- **Two supervision levels:** Interactive mode stops after one selected task; Night Shift continues only when explicitly enabled and within runtime, task, and attempt limits.
+- **Evidence before completion:** the controller runs declared verification and artifact-backed quality gates, then a separate read-only reviewer decides `SHIP`, `REVISE`, or `BLOCKED`.
+- **Human authority:** reviewer `SHIP` is provisional. Only `accept` creates final human completion; `reject` reopens work without destructive rollback.
+
+## Choose a mode
+
+| Mode | Use it when | Behavior |
+| --- | --- | --- |
+| Interactive | You want turn-by-turn control | Runs one explicit task, verifies, reviews, writes a handoff, then stops for human acceptance. |
+| Night Shift | You explicitly want bounded unattended progress | Processes dependency-ready tasks until the queue finishes, a blocker appears, `STOP` is detected, or a resource limit is reached. |
+
+Night Shift defaults to 8 hours, 10 processed tasks per run segment, and 3 attempts per task. It is never selected implicitly.
+
+## Requirements
 
 - Node.js 22 or newer.
-- Git, with every workflow target initialized as a Git working tree.
+- Git; every workflow target must be a Git working tree.
 - Codex CLI installed, authenticated, and usable with the user's existing configuration.
-- npm or pnpm available on the first launch when the installed Skill does not yet contain build dependencies; the wrapper installs only its own locked TypeScript build dependency and never runs the target repository's advisory install command.
+- npm or pnpm for the installed Skill's first build. Night-Mode never runs the target project's advisory install command automatically.
 
-## Install the user Skill
+## Install
 
-The repository root is the distributable `night-mode` user Skill. Install it with the Codex skill installer:
+Install the repository root as the `night-mode` Codex Skill:
 
 ```text
 python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
-  --repo joker01-01/Night-Mode --path . --name night-mode
+  --repo joker01-01/night-mode --path . --name night-mode
 ```
 
-The installer places it at `~/.codex/skills/night-mode`. The bundled wrapper resolves that installation directory, installs missing build dependencies, builds the TypeScript runner when required, and launches it:
+Restart Codex after installation. The wrapper lives inside the installed Skill:
 
 ```text
 # macOS / Linux
@@ -34,105 +52,169 @@ node ~/.codex/skills/night-mode/scripts/night-mode help
 node "$HOME\.codex\skills\night-mode\scripts\night-mode" help
 ```
 
-This repository also contains a separate maintainer-only Skill at `.agents/skills/night-mode-maintainer/SKILL.md`. Codex discovers it while working in this checkout; it is not the end-user runner Skill.
+The wrapper resolves its own installation directory, installs only its locked build dependency when missing, rebuilds stale TypeScript output, and keeps the target repository as the working directory.
 
-## Develop from this checkout
+## Quick start
+
+### 1. Create the immutable task file
+
+From the target Git repository, copy the example and replace its sample task with concrete requirements:
 
 ```text
+# macOS / Linux
+cp ~/.codex/skills/night-mode/workflow.tasks.example.json workflow.tasks.json
+
+# PowerShell
+Copy-Item "$HOME\.codex\skills\night-mode\workflow.tasks.example.json" ".\workflow.tasks.json"
+```
+
+Every schema-version-2 task needs a unique `id`, an objective, explicit acceptance criteria, at least one controller-run verification command, and a `dependsOn` array. Optional `qualityGates` can require fresh integration or user-path evidence.
+
+### 2. Check readiness
+
+```text
+node ~/.codex/skills/night-mode/scripts/night-mode readiness \
+  --cwd /path/to/project --tasks workflow.tasks.json
+```
+
+Inspect `READINESS.md`. Night Shift requires level 2 by default; select level 3 for artifact-backed integration coverage or level 4 for explicit bootstrap assumptions and user-path QA on every task.
+
+### 3. Run one Interactive task
+
+```text
+node ~/.codex/skills/night-mode/scripts/night-mode run \
+  --cwd /path/to/project --tasks workflow.tasks.json --task example-001
+```
+
+The controller starts a fresh `workspace-write` worker, runs the declared checks, starts a fresh `read-only` reviewer, and writes `.codex/workflow/HANDOFF.md`.
+
+### 4. Accept or reject the provisional result
+
+```text
+node ~/.codex/skills/night-mode/scripts/night-mode accept \
+  --cwd /path/to/project --task example-001
+
+node ~/.codex/skills/night-mode/scripts/night-mode reject \
+  --cwd /path/to/project --task example-001 --reason "Explain what must be corrected."
+```
+
+Use the exact command printed in `HANDOFF.md` when a custom state directory is configured.
+
+## Use it directly as a Skill
+
+You can ask Codex to operate the installed Skill instead of assembling CLI flags yourself:
+
+```text
+$night-mode
+Run Interactive mode in /path/to/project using workflow.tasks.json.
+Execute task example-001, then stop for my acceptance.
+```
+
+For autonomous work, make the mode and limits explicit:
+
+```text
+$night-mode
+Run Night Shift in /path/to/project using workflow.tasks.json.
+Require readiness level 3, stop after 2 hours or 5 tasks, and preserve a Morning Report.
+```
+
+## Night Shift, stop, and resume
+
+```text
+# Start bounded Night Shift.
+node ~/.codex/skills/night-mode/scripts/night-mode run \
+  --cwd /path/to/project --tasks workflow.tasks.json --mode night \
+  --min-readiness 3 --total-runtime 7200 --max-tasks 5 --max-attempts 3
+
+# Explicitly allow an already-dirty target; checkpoints are disabled.
+node ~/.codex/skills/night-mode/scripts/night-mode run \
+  --cwd /path/to/project --tasks workflow.tasks.json --mode night --allow-dirty
+
+# Resume an interrupted or limit-reached run.
+node ~/.codex/skills/night-mode/scripts/night-mode resume \
+  --cwd /path/to/project --tasks workflow.tasks.json --mode night
+
+# Inspect current state.
+node ~/.codex/skills/night-mode/scripts/night-mode status --cwd /path/to/project
+```
+
+Create `.codex/workflow/PAUSE` to prevent a new phase from starting, or `.codex/workflow/STOP` to end at the nearest safe boundary. Night Shift always writes `MORNING_REPORT.md` before exit.
+
+## Readiness and evidence
+
+`readiness` writes `.codex/workflow/readiness.json` and `READINESS.md` without starting Codex. A declared bootstrap install command is advisory only; only a bounded health check may run, and readiness fails if that check changes the repository. Environment checks record variable names and presence, never values.
+
+Each optional quality gate declares an `integration` or `user_path` command plus evidence paths. Exit code zero is insufficient: every artifact must be a fresh regular file produced or refreshed by the current command. The controller rejects stale, symlinked, escaping, controller-owned, or oversized evidence and records size plus SHA-256 for accepted artifacts.
+
+## Project memory
+
+Durable project memory is separate from retry-oriented failure memory. Reviewer-approved decisions, learnings, and constraints keep exact repository-relative line citations and content hashes. Before reuse, Night-Mode revalidates each citation, relocates uniquely moved text, and excludes changed, ambiguous, missing, expired, or archived entries without deleting their audit history.
+
+```text
+node ~/.codex/skills/night-mode/scripts/night-mode memory list --cwd /path/to/project
+node ~/.codex/skills/night-mode/scripts/night-mode memory validate --cwd /path/to/project
+node ~/.codex/skills/night-mode/scripts/night-mode memory add --cwd /path/to/project \
+  --kind learning --statement "The API contract lives in src/contracts.ts." \
+  --tags api,contracts --source src/contracts.ts:1-20
+node ~/.codex/skills/night-mode/scripts/night-mode memory archive --cwd /path/to/project \
+  --id memory-abc123 --reason "Superseded by the new contract."
+```
+
+## Artifacts
+
+Night-Mode keeps execution metadata outside the immutable task document:
+
+```text
+.codex/workflow/
+├── state.json                 # Run, task, dependency, and limit state
+├── HANDOFF.md                 # Human review and exact next actions
+├── readiness.json
+├── READINESS.md
+├── project-memory.json
+├── PROJECT_MEMORY.md
+├── failures.json              # Structured retry history
+├── events.jsonl
+├── phases/                    # Worker and reviewer JSONL output
+└── validation/                # Verification and quality-gate evidence
+
+PROJECT_STATE.md               # Reviewer-approved project continuity
+MORNING_REPORT.md              # Night Shift summary
+```
+
+## Safety guarantees
+
+- Interactive is the default; Night Shift requires explicit `--mode night`.
+- Workers use `workspace-write`; reviewers use `read-only`.
+- A worker cannot mark its own task complete. Verification, reviewer approval, an unchanged task hash, and human acceptance remain separate gates.
+- Night Shift rejects dirty worktrees unless `--allow-dirty` is explicit; dirty runs cannot checkpoint.
+- Git checkpoints are opt-in and occur only after accepted review and non-failing validation.
+- The runner does not pass dangerous approval or sandbox-bypass flags and never uses reset, clean, rebase, fetch, force push, history rewriting, or unvalidated Git-lock deletion.
+- Requirements remain human-owned. Execution state never mutates `workflow.tasks.json`.
+
+## Develop and verify
+
+```text
+git clone https://github.com/joker01-01/night-mode.git
+cd night-mode
 npm ci
+npm run typecheck
+npm run build
+npm test
 node scripts/night-mode help
 ```
 
-The same wrapper is used for every command below, so the commands printed into `HANDOFF.md` remain executable even when the runner is installed outside the target repository.
+The automated suite contains 70 tests. V1 also passed the controlled real-Codex acceptance matrix defined in [PRODUCT_REQUIREMENTS.md](PRODUCT_REQUIREMENTS.md), including Interactive accept/reject, Night dependencies, timeouts, blockers, pause/stop/resume, task mutation, stale locks, resource limits, and dirty-worktree behavior.
 
-## Commands
+## Documentation
 
-```powershell
-# Assess whether the repository is safe and testable enough for Night Shift.
-node scripts/night-mode readiness --tasks workflow.tasks.json
+- [V1 requirements](PRODUCT_REQUIREMENTS.md)
+- [Roadmap](ROADMAP.md)
+- [Research and comparison](RESEARCH.md)
+- [Changelog](CHANGELOG.md)
+- [Release checklist](RELEASE_CHECKLIST.md)
 
-# Interactive mode requires one explicit task.
-node scripts/night-mode run --tasks workflow.tasks.json --task task-id
+The repository root is the distributable end-user Skill. Repository maintenance instructions are intentionally separate in `.agents/skills/night-mode-maintainer/SKILL.md`.
 
-# Night Shift is explicit and processes the pending queue within caps.
-node scripts/night-mode run --tasks workflow.tasks.json --mode night --max-attempts 3
+## License
 
-# Require artifact-backed integration gates or full user-path readiness.
-node scripts/night-mode run --tasks workflow.tasks.json --mode night --min-readiness 3
-node scripts/night-mode run --tasks workflow.tasks.json --mode night --min-readiness 4
-
-# Override Night Shift's total runtime and task cap when needed.
-node scripts/night-mode run --tasks workflow.tasks.json --mode night --total-runtime 3600 --max-tasks 5
-
-# Explicitly permit a dirty Night Shift; this records a baseline and disables checkpoints.
-node scripts/night-mode run --tasks workflow.tasks.json --mode night --allow-dirty
-
-# Recover an interrupted run after reviewing its state.
-node scripts/night-mode resume --tasks workflow.tasks.json --mode night
-node scripts/night-mode status
-
-# Human acceptance after an Interactive or Night run.
-node scripts/night-mode accept --task task-id
-node scripts/night-mode reject --task task-id --reason "Explain what must be corrected."
-
-# Inspect, revalidate, add, or retire evidence-backed project memory.
-node scripts/night-mode memory list
-node scripts/night-mode memory validate
-node scripts/night-mode memory add --kind learning --statement "The API contract lives in src/contracts.ts." --tags api,contracts --source src/contracts.ts:1-20
-node scripts/night-mode memory archive --id memory-abc123 --reason "Superseded by the new contract."
-```
-
-Night Shift defaults to an 8-hour total runtime, 10 tasks per run segment, and 3 attempts per task. Use `--total-runtime` (or `--max-runtime`) and `--max-tasks` to set explicit caps. Reaching a cap produces `limit_reached`, preserves state, and writes `MORNING_REPORT.md`; continue only with an explicit `resume` command.
-
-## Readiness and user-path QA
-
-`readiness` writes `.codex/workflow/readiness.json` and `READINESS.md`. Night Shift requires level 2 by default, and `--min-readiness` can raise the gate:
-
-- Level 0: a declared prerequisite or repository check is blocked.
-- Level 2: Git and immutable task contracts are valid, with controller-run verification.
-- Level 3: every task adds an integration or user-path quality gate with artifact evidence.
-- Level 4: repository assumptions and a non-mutating bootstrap health check are explicit, and every task has user-path QA.
-
-The optional root `readiness` block declares command names, environment-variable names, network assumptions, and bootstrap health. Environment values are never copied into the report. `bootstrap.installCommand` is advisory and is never run automatically; only `bootstrap.checkCommand` runs, and readiness fails if that health check changes the repository.
-
-Each optional task `qualityGates` entry has `id`, `kind` (`integration` or `user_path`), `command`, and `evidencePaths`. The controller runs the command, requires every evidence path to be a fresh regular file created or refreshed by that invocation, and records its byte size and SHA-256. Missing, stale, symbolic-link, out-of-repository, controller-owned, or oversized evidence fails validation even when the command exits zero. Browser traces, screenshots, JSON assertions, and CLI transcripts are suitable evidence; use the smallest artifact that lets a human inspect the user-visible result.
-
-`workflow.tasks.json` must use schema version 2 from `workflow.tasks.example.json`. Every task needs non-empty acceptance criteria, at least one verification command, and an explicit `dependsOn` array. The backward-compatible `readiness` and `qualityGates` fields strengthen Night operation without changing existing task meaning. Requirements are never mutated by the runner. Task automation status, human-acceptance status, attempts, readiness, validation results, phase outputs, failure memory, project memory and events are stored separately under `.codex/workflow/`.
-
-Schema version 1 is rejected with a migration error. The dependency graph is validated before any Codex phase starts; unknown, self, duplicate, and cyclic dependencies are invalid.
-
-Night Shift selects dependency-ready tasks in document order. A task blocker marks its transitive descendants `dependency_blocked` while independent tasks remain eligible. Interactive mode never bypasses dependencies; it records the unmet dependency statuses and stops before starting a worker.
-
-Automation completion is represented separately from human acceptance: a reviewed task becomes `provisionally_complete` while awaiting human acceptance. `accept` changes its human status to `accepted`; `reject` reopens it as `pending`, records the reason, and marks transitive dependants `dependency_blocked` without deleting artifacts or rolling back Git changes.
-
-Reviewer-approved project continuity is written to the managed section between `<!-- codex-workflow:managed:start -->` and `<!-- codex-workflow:managed:end -->` in `PROJECT_STATE.md`. The worker proposes the summary, decisions, risks, evidence, next actions, and human acceptance actions; the reviewer approves or corrects that proposal. Updates are atomic and preserve every byte outside the managed markers, so a fresh Codex context can continue from repository files without replacing human-owned notes.
-
-## Evidence-backed project memory
-
-Project memory is separate from retry-oriented failure memory. A successful worker may propose durable `decision`, `learning`, or `constraint` entries, but only the independent reviewer's approved/corrected candidates reach `.codex/workflow/project-memory.json`. Every entry stores exact repository-relative line evidence, the cited text, its SHA-256, validation/use timestamps, origin, and retention status. Schema-valid candidates with unsafe or uncapturable evidence are recorded as rejected events and do not block otherwise valid task completion; structurally malformed reviewer output remains a contract failure.
-
-Before every worker attempt, the controller revalidates all non-archived entries. An unchanged citation remains active; uniquely moved cited text receives updated line numbers; changed, ambiguous, missing, expired, or archived evidence is retained in the audit record but never injected. Selection is deterministic and task-relevant, with a maximum of eight entries; active constraints remain globally visible. Relevant use resets the default 28-day retention window. No record is auto-deleted.
-
-`PROJECT_MEMORY.md` summarizes health and citations for human review. Manual add/validate/archive commands share the workflow lock with active runs. Candidate statements, tags, citation counts, source-file size, line count, and captured bytes are bounded. Citation capture accepts only non-empty text from regular non-symlink files inside the target repository and outside Git internals, controller state, and secret-like paths.
-
-## Safety model
-
-- The worker uses Codex `workspace-write`; the reviewer always uses `read-only`.
-- The runner never passes a dangerous approval or sandbox bypass flag.
-- Verification commands are taken only from the declared task document and each command output is retained.
-- Readiness never auto-installs target dependencies. Declared bootstrap health checks are bounded and must leave the Git representation unchanged.
-- Quality gates require fresh, repository-contained regular-file evidence and retain its size and SHA-256; an old artifact cannot satisfy a new run.
-- Automatic completion requires worker `COMPLETE`, reviewer `SHIP`, every declared verification command to pass, and an unchanged task document; missing verification is never treated as a pass.
-- Failed attempts retain structured phase/classification, exit or timeout, exact log, baseline-relative changed paths, feedback, verification, and next-action evidence. Repeated outcomes require a materially different retry approach.
-- Project memory is reviewer-gated, citation-backed, revalidated before use, relevance-filtered, and audit-retained when invalidated or archived.
-- The task file hash is checked before and after each Codex phase. A mutation stops the run as blocked.
-- Every target must be a Git working tree. The run state records the starting commit, status, changed paths, and baseline hash.
-- Interactive mode warns and records the baseline on a dirty worktree. Night Shift rejects dirty worktrees unless `--allow-dirty` is explicit; dirty runs never create checkpoints.
-- Phase-launch failures include the primary process error and the exact phase log path.
-- Git checkpoints are off by default. If explicitly enabled, they require a clean initial worktree and only occur after review and validation acceptance.
-- The runner never resets, cleans, rebases, fetches or deletes a Git lock.
-- A run remains `needs_review` while work awaits human acceptance; only the explicit `accept` command finalizes the task.
-- `PROJECT_STATE.md` records the latest reviewer-approved continuity proposal and honest controller lifecycle status for provisional completion, human decisions, blockers, stops, and run completion; malformed managed markers stop the update instead of risking human-owned content.
-- `PAUSE` prevents new work while the controller continues checking `STOP` and the total-runtime cap. `STOP` exits at the nearest safe phase boundary.
-- `resume` requires the same repository target, task document path, and task hash. It reopens resumable limit states and records an explicit reason when an interrupted phase must be rerun.
-- A stale or invalid workflow lock is never reclaimed implicitly; inspect it first, then pass `--reclaim-stale-lock`. An active owner cannot be reclaimed.
+[MIT](LICENSE)

@@ -6,7 +6,7 @@
   "description": "A file-backed Interactive and Night Shift workflow runner for Codex.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/joker01-01/Night-Mode.git"
+    "url": "git+https://github.com/joker01-01/night-mode.git"
   },
   "main": "dist/index.js",
   "bin": {

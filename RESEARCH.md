@@ -302,3 +302,38 @@ This pass intentionally excludes products that merely repeat the Ralph loop patt
 ### Competitive conclusion
 
 Night-Mode is not behind on its core safety thesis: immutable requirements, controller-owned validation, a separate read-only reviewer, provisional completion, explicit human accept/reject, bounded Night execution, evidence-preserving failure state, readiness/user-path evidence, and self-invalidating citation-backed memory now form a coherent differentiator. It remains behind mature products in live steering, extension hooks, phase-granular durability, hosted execution, and operational UI. Typed lifecycle hooks are now the next product enhancement with the best leverage-to-risk ratio.
+
+---
+
+## 2026-08-30 README and Skill Distribution Study
+
+### Method
+
+The README pass used both inspected local source snapshots and current GitHub-rendered documentation. Local repositories were read beyond their README so that documented workflows could be checked against the actual Skill, runner, scripts, and license surface:
+
+- [MattMagg/ralph-wiggum-codex](https://github.com/MattMagg/ralph-wiggum-codex), local commit `1c6b68d`, MIT: README, user Skill, schemas/tests, and repository layout.
+- [JH427/ralph-codex](https://github.com/JH427/ralph-codex), local commit `4609fac`, no repository license file: README plus `ralph.py`; structure only was studied and no text or code was reused.
+- [Yeine/ralph](https://github.com/Yeine/ralph), local commit `3660a9a`, MIT: README, entrypoint, modular shell libraries, and runtime defaults.
+- [taberoajorge/ralph](https://github.com/taberoajorge/ralph), local commit `729f22b`, MIT: README, provider scripts, Rust entrypoint, and agent Skills.
+
+Current public READMEs were rechecked on 2026-08-30 because installation commands and supported surfaces can drift. Multilingual layout was compared with current Skill repositories that use explicit language navigation and separate localized files, including [awesome-agent-skills](https://github.com/libukai/awesome-agent-skills), [headless-ghidra](https://github.com/ByteLandTechnology/headless-ghidra), and the documented contribution layout in [garden-skills](https://github.com/ConardLi/garden-skills).
+
+### Strong README patterns worth adopting
+
+| Source | Stronger documentation idea | Night-Mode decision |
+| --- | --- | --- |
+| `ralph-wiggum-codex` | Leads with a precise product statement, separates Skill installation from direct engine use, shows an actual `$skill` invocation, and makes work/review artifacts visible. | Adopt the value-first opening, direct `$night-mode` examples, and explicit artifact model. Keep Night-Mode's stronger human-acceptance and controller-verification boundaries. |
+| `ralph-codex` | Explains the user problem and core principles before presenting file formats. | Add a short “Why Night-Mode” section before setup. Do not adopt destructive rollback or reuse unlicensed wording/source. |
+| `Yeine/ralph` | Puts dependencies, Quick Start, full usage, runtime signals, architecture, and testing in a predictable order. | Put prerequisites and one successful path before advanced operations. Do not adopt unlimited autonomous defaults, shared-worktree parallelism, or dangerous Codex flags. |
+| `taberoajorge/ralph` | Uses a concrete flow explanation, copyable setup, required-file descriptions, monitoring/control, troubleshooting, and Skill-specific instructions. | Keep copyable commands and explain required task fields, pause/stop/resume, and generated artifacts. Avoid its 500-line single-page sprawl and provider breadth that Night-Mode does not support. |
+| Multilingual Skill repositories | Keep the default README readable while linking to complete translations at the top of every language file. | Use `README.md` for English, `README.zh-CN.md` for Simplified Chinese, and `README.ja-JP.md` for Japanese, with symmetric language navigation and the same operational section order. |
+
+### Ideas deliberately not absorbed
+
+- No marketing claims, star badges, screenshots, installers, providers, dashboards, or parallelism that the repository cannot currently prove.
+- No “agent says done” completion model, unlimited default loop, destructive Git recovery, or dangerous Codex execution flag.
+- No verbatim source or README reuse. The result applies information architecture only; commands and claims are derived from Night-Mode's own source, Skill contract, tests, and acceptance evidence.
+
+### Resulting README contract
+
+All three README variants now lead with the product outcome, show Interactive versus Night Shift early, provide a four-step first successful run, demonstrate direct Skill invocation, explain generated evidence and project memory, and end with explicit safety guarantees and verification status. Operational commands remain identical across languages so a translation cannot silently change behavior.

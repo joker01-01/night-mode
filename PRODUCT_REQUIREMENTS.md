@@ -1,6 +1,6 @@
 # Codex Development Workflow — V1 Final Requirements
 
-Status: Finalized and accepted for V1; public release remains separately gated by `RELEASE_CHECKLIST.md`.
+Status: Finalized, accepted, and published as V1 `v0.1.0`; future release actions remain governed by `RELEASE_CHECKLIST.md`.
 
 Date: 2026-08-21; amended 2026-08-29 with backward-compatible readiness, artifact-backed QA, and evidence-backed project memory; acceptance completed 2026-08-30
 

@@ -2,9 +2,16 @@
 
 All notable changes to Night-Mode are documented here.
 
+## [Unreleased]
+
+### Documentation
+
+- Added complete English, Simplified Chinese, and Japanese README variants with symmetric language navigation.
+- Reworked the README around a value-first introduction, a four-step Quick Start, direct `$night-mode` examples, artifact visibility, and explicit safety boundaries informed by source-level comparison with related Skills.
+
 ## [0.1.0] - 2026-08-30
 
-Initial V1 release candidate.
+Initial V1 release.
 
 ### Workflow and safety
 
@@ -34,4 +41,4 @@ Initial V1 release candidate.
 ### Distribution
 
 - V1 is distributed as a GitHub-installed Codex Skill, not as an npm package. `package.json` remains private to prevent accidental npm publication.
-- The project is MIT-licensed. This release is committed and tagged locally as `v0.1.0`; the commit and tag have not been pushed to `origin`.
+- The project is MIT-licensed. Release commit `3ebca15` and annotated tag `v0.1.0` were published to `origin`.
