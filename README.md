@@ -1,5 +1,12 @@
 # Night-Mode
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-800080?style=flat-square)](LICENSE)
+![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D4?style=flat-square)
+![Runtime: Node.js 22+](https://img.shields.io/badge/Runtime-Node.js%2022%2B-339933?style=flat-square&logo=nodedotjs&logoColor=white)
+![Integration: Codex CLI](https://img.shields.io/badge/Integration-Codex%20CLI-111111?style=flat-square)
+![Modes: Interactive | Night Shift](https://img.shields.io/badge/Modes-Interactive%20%7C%20Night%20Shift-D97706?style=flat-square)
+![Acceptance: Human Required](https://img.shields.io/badge/Acceptance-Human%20Required-2EA44F?style=flat-square)
+
 **English** | [简体中文](README.zh-CN.md) | [日本語](README.ja-JP.md)
 
 A file-backed, cross-platform Codex workflow controller for supervised daytime development and bounded autonomous Night Shift execution.
